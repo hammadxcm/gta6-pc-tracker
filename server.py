@@ -657,7 +657,8 @@ OFFICIAL = {
     "pc_announced": False,
     "headline": "No PC version announced",
     "detail": "Take-Two's fiscal Q2 2027 results (19 Nov 2026) list Grand Theft Auto VI for PS5 and Xbox Series X|S only. "
-              "Rockstar hasn't commented on the leak or the community ports.",
+              "Rockstar hasn't commented on the leak or the community ports. Unconfirmed: GamesBeat reported on 13 Oct, "
+              "citing four anonymous industry sources, that Rockstar is targeting a PC release in Q1 2027.",
     "as_of": "2026-11-19",
     "source": "Take-Two Interactive Q2 FY2027 results",
 }
