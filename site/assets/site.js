@@ -235,7 +235,7 @@ function renderStars(){
 
 function renderLive(){
   const vid = (CFG.youtubeVideoId || "").trim(), id = (CFG.youtubeChannelId || "").trim();
-  const watch = vid ? `https://www.youtube.com/watch?v=${encodeURIComponent(vid)}` : (CFG.youtubeChannelUrl || "").trim();
+  const watch = vid ? `https://www.youtube.com/live/${encodeURIComponent(vid)}` : (CFG.youtubeChannelUrl || "").trim();
   let src = "";
   if (/^[\w-]{11}$/.test(vid)) src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(vid)}?rel=0`;
   else if (/^UC[\w-]{20,}$/.test(id)) src = `https://www.youtube-nocookie.com/embed/live_stream?channel=${encodeURIComponent(id)}`;
