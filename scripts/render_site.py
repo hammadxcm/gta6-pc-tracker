@@ -10,7 +10,7 @@ from pathlib import Path
 
 SITE = Path(__file__).resolve().parent.parent / "site"
 SITE_URL = os.environ.get("SITE_URL", "https://gta6.fyniti.co.uk/").rstrip("/") + "/"
-STAGES = ["Groundwork", "Exe runs", "First frame", "Main menu", "In-game", "30 FPS", "Stable"]
+STAGES = ["Groundwork", "Exe runs", "First frame", "Main menu", "In the world", "Playable", "Complete"]
 e = lambda s: html.escape(str(s if s is not None else ""), quote=True)
 
 
@@ -81,21 +81,24 @@ def intel_html(data):
 def faqs(data):
     pw, L = data["portwatch"], data["portwatch"]["leader"]
     reached = pw.get("furthest", "Groundwork")
-    playable = reached in ("30 FPS", "Stable")
+    complete = reached == "Complete"
     day = datetime.fromisoformat(data["built_at"]).strftime("%-d %B %Y")
     repos = {r["label"]: r for r in data["repos"]}
+    H = pw.get("headline") or L
     q = [
         ("Does GTA 6 run on PC yet?",
-         (f"Yes, in stable form: the furthest stage reached is {reached}." if playable else
-          f"Not playably. As of {day}, the furthest stage any team has reached is “{reached}”, led by {L['name']} "
-          f"at {L['score']:g}/100{' at around ' + str(L['fps']) + ' fps' if L.get('fps') else ''}. Progress is self-reported by each team, "
-          f"and no project has reported stable 30 fps gameplay yet.")),
+         (f"Yes: a build reports the whole game finishable ({reached})." if complete else
+          f"Only in early, rough form. As of {day}, the furthest stage reached is “{reached}”: {H['name']} is at {H['score']:g}/100"
+          f"{' (a private build)' if H.get('private') else ''}, and the top public project is {L['name']} at {L['score']:g}/100"
+          f"{' at around ' + str(L['fps']) + ' fps' if L.get('fps') else ''}. Progress is self-reported by each team; "
+          f"nobody can finish the game or play it smoothly yet.")),
         ("What are XCL and VIctory?",
          " ".join(f"{k} ({r['slug']}): {r.get('description') or ''}" for k, r in repos.items())
          + " Both are open source on GitHub, and this tracker follows their stars, pull requests and commits live."),
         ("How is the progress score calculated?",
-         "Each effort is scored 0–100 on one ladder: Groundwork (0–25), Exe runs (25), First frame (40), Main menu (55), "
-         "In-game (70), 30 FPS (85) and Stable (100). Scores and stages come from PortWatch VI."),
+         "Each effort is scored 0–100. Getting in is a ladder: Groundwork (0–10), Exe runs (10), First frame (20), Main menu (30), "
+         "In the world (40) and Playable (50). Past Playable, story progress, rendering, performance and stability fill the other half; "
+         "100 means the whole game can be finished. Scores and stages come from PortWatch VI."),
         ("How often is this tracker updated?",
          "Every 15 minutes. GitHub stats come from the GitHub API, race scores and news from PortWatch VI, and press coverage from Google News."),
         ("Is this an official Rockstar or Take-Two site?",

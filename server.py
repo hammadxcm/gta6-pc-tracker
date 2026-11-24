@@ -409,12 +409,23 @@ def poll_loop():
 # their assets/js/scoring.js so ranks match the site. Strings are untrusted -> escaped in UI.
 PORTWATCH_URL = os.environ.get("PORTWATCH_URL", "https://portwatch-vi.xyz/data/tracker.json")
 PORTWATCH_POLL = int(os.environ.get("PORTWATCH_POLL", "300"))
-MILESTONES = [("groundwork", "Groundwork", 0), ("loads", "Exe runs", 25), ("boots", "First frame", 40),
-              ("menu", "Main menu", 55), ("ingame", "In-game", 70), ("fps30", "30 FPS", 85), ("stable", "Stable", 100)]
+# PortWatch scale (since 2026-11-24): a ladder up to Playable (50), then four quality tracks fill 50-100.
+MILESTONES = [("groundwork", "Groundwork", 0), ("loads", "Exe runs", 10), ("boots", "First frame", 20),
+              ("menu", "Main menu", 30), ("world", "In the world", 40), ("playable", "Playable", 50), ("complete", "Complete", 100)]
 TICK = {k: at for k, _, at in MILESTONES}
 LABEL = {k: l for k, l, _ in MILESTONES}
 GW_WEIGHTS = {"loader": .2, "shaders": .28, "graphics": .32, "proven": .2}
 STAB = {"unknown": 0, "constant": 0, "often": .25, "sometimes": .55, "rarely": .8, "stable": 1}
+TRACK_W = {"story": .35, "render": .25, "perf": .2, "stability": .2}
+MILESTONE_DESC = {
+    "Groundwork": "Loader, system libraries, shader translation and graphics layer, built before the executable exists.",
+    "Exe runs": "GTA VI's executable is mapped, its imports resolve and its own code starts running.",
+    "First frame": "The game draws its first real frames: logos, a loading screen or the intro.",
+    "Main menu": "The title screen or first menus are reached and respond to input.",
+    "In the world": "Story mode loads into the game world and draws it, however broken.",
+    "Playable": "You control a character in the world: move around, with the HUD or pause menu working.",
+    "Complete": "The whole game can be finished, looking like the console, at 30 FPS or better, without crashing.",
+}
 
 
 def _c01(v):
@@ -429,11 +440,12 @@ def _ladder(v):
 
 
 def score_effort(e: dict) -> dict:
+    """Mirror of portwatch-vi.xyz assets/js/scoring.js scoreEffort()."""
     gw = sum(w * _c01((e.get("groundwork") or {}).get(k)) for k, w in GW_WEIGHTS.items())
     gta = e.get("gta") or {}
     score = prev = TICK["loads"] * gw
     reached = "groundwork"
-    for key in ("loads", "boots", "menu", "ingame"):
+    for key in ("loads", "boots", "menu", "world", "playable"):
         v = _ladder(gta.get(key))
         if v >= 1:
             score = prev = TICK[key]
@@ -442,18 +454,17 @@ def score_effort(e: dict) -> dict:
         if v > 0:
             score = max(score, prev + v * (TICK[key] - prev))
         break
-    if reached == "ingame":
-        fps = _c01((float(gta.get("fps") or 0)) / 30)
-        stab = STAB.get(gta.get("stability"), 0)
-        score = TICK["ingame"] + fps * (TICK["fps30"] - TICK["ingame"]) + stab * (TICK["stable"] - TICK["fps30"])
-        if fps >= 1:
-            reached = "fps30"
-        if fps >= 1 and stab >= 1:
-            reached = "stable"
-    ms = e.get("manualScore")   # PortWatch owner override (EDITOR.md "Owner decisions")
+    tracks = {"story": _c01(gta.get("story")), "render": _c01(gta.get("render")),
+              "perf": _c01((float(gta.get("fps") or 0)) / 30), "stability": STAB.get(gta.get("stability"), 0)}
+    quality = sum(TRACK_W[k] * tracks[k] for k in TRACK_W)
+    if reached == "playable":
+        score = TICK["playable"] + quality * (TICK["complete"] - TICK["playable"])
+        if quality >= 1:
+            reached = "complete"
+    ms = e.get("manualScore")   # PortWatch owner override
     if isinstance(ms, (int, float)):
         score = min(100.0, max(0.0, float(ms)))
-    return {"score": round(score, 1), "reached": reached, "reachedLabel": LABEL[reached]}
+    return {"score": round(score, 1), "reached": reached, "reachedLabel": LABEL[reached], "tracks": tracks}
 
 
 def poll_portwatch():
@@ -508,13 +519,7 @@ def poll_portwatch():
         "tracked": len(tracked),
         "watched": len(d.get("efforts", [])),
         "milestones": [{"label": l, "at": at} for _, l, at in MILESTONES],
-        "milestone_desc": {"Groundwork": "Loader, system libraries, shader translation and graphics layer, built before the game runs.",
-                           "Exe runs": "GTA VI's executable is mapped, its imports resolve and its own code starts running.",
-                           "First frame": "The game draws its first real frames: logos, a loading screen or the intro.",
-                           "Main menu": "The title screen or main menu is reached and responds to input.",
-                           "In-game": "Story mode loads and a player can move around the world.",
-                           "30 FPS": "In-game performance averages 30 fps on a reported PC.",
-                           "Stable": "Plays for long sessions without crashing."},
+        "milestone_desc": MILESTONE_DESC,
         "nuked": [{"name": str(e.get("name", ""))[:40], "repo": e.get("repo")} for e in d.get("efforts", []) if e.get("nuked")],
         "ours": [r["slug"] for r in REPOS],
         "ranked": out,

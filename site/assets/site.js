@@ -35,7 +35,7 @@ function renderHero(){
   $("#clk-note").textContent = `Counting from ${new Date(D.counter.start).toUTCString().replace(":00 GMT", " UTC")}`;
 }
 
-const STAGES = ["Groundwork", "Exe runs", "First frame", "Main menu", "In-game", "30 FPS", "Stable"];
+const STAGES = ["Groundwork", "Exe runs", "First frame", "Main menu", "In the world", "Playable", "Complete"];
 let FLT = "all", SRT = "score";
 function renderRace(){
   const pw = D.portwatch, L = pw.leader, ms = pw.milestones || [];
