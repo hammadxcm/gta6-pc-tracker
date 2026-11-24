@@ -57,6 +57,8 @@ def main(out_path: str):
         r["history"] = merge_hist(prev_hist.get(r["slug"]), r.get("history"))
         repos.append({k: r.get(k) for k in KEEP})
     pw = server.poll_portwatch()
+    ours = {c["slug"] for c in server.REPOS}
+    team_stats = server.poll_team_stats([r["repo"] for r in pw["ranked"][:6] if r.get("repo") and r["repo"] not in ours])
     try:
         watch = server.poll_watch()
     except Exception as e:  # news is optional
@@ -73,7 +75,7 @@ def main(out_path: str):
     if exe.get("status") == "released" and exe.get("releasedAt"):
         counter["start"] = exe["releasedAt"]
     data = {"built_at": datetime.now(timezone.utc).isoformat(), "repos": repos, "portwatch": pw,
-            "watch": watch, "intel": intel, "counter": counter}
+            "watch": watch, "intel": intel, "counter": counter, "team_stats": team_stats}
     Path(out_path).parent.mkdir(parents=True, exist_ok=True)
     Path(out_path).write_text(json.dumps(data, separators=(",", ":")))
     import render_site

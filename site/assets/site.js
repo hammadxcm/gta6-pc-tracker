@@ -28,9 +28,11 @@ function clock(){
 
 /* ---------- renderers ---------- */
 function renderHero(){
-  const pw = D.portwatch, L = pw.leader;
-  $("#lead-score").textContent = L ? L.score : "–";
-  $("#lead-line").innerHTML = L ? `Leader <b>${esc(L.name)}</b> · ${esc(L.stage)} · top-3 average <b>${pw.top3}</b> · <b>${pw.watched}</b> efforts watched` : "";
+  const pw = D.portwatch, L = pw.leader, H = pw.headline || L;
+  $("#lead-score").textContent = H ? H.score : "–";
+  $("#lead-line").innerHTML = !H ? "" : H.private
+    ? `Furthest <b>${esc(H.name)}</b> (private build) · ${esc(H.stage)} · top public <b>${esc(L.name)}</b> ${L.score} · top-3 average <b>${pw.top3}</b>`
+    : `Leader <b>${esc(L.name)}</b> · ${esc(L.stage)} · top-3 average <b>${pw.top3}</b> · <b>${pw.watched}</b> efforts watched`;
   $("#clk-lbl").textContent = D.counter.label || "Since the executable dropped";
   $("#clk-note").textContent = `Counting from ${new Date(D.counter.start).toUTCString().replace(":00 GMT", " UTC")}`;
 }
@@ -121,6 +123,48 @@ function renderTimeline(){
   $("#timeline").innerHTML = ch.map(c => `<li><span class="when"><span class="ic ${ic[c.kind] ? esc(c.kind) : "other"}">${ic[c.kind] || "•"}</span><time>${esc(c.date)}</time></span><p>${esc(c.text)}</p></li>`).join("") || "<li><p>No changes yet.</p></li>";
 }
 
+const LCOL = ["#ff3e9a", "#ff8a5c", "#36e4e0", "#8d5cff", "#ffc38a", "#6ef0a0"];
+function leaders(n = 5){
+  const pw = D.portwatch, all = [...(pw.ranked || []).map(r => ({...r, pub: true})), ...(pw.private || []).map(p => ({...p, pub: false}))]
+    .sort((a, b) => b.score - a.score);
+  const rows = all.slice(0, n);
+  for (const slug of pw.ours || []) if (!rows.some(r => r.repo === slug)) { const f = all.find(r => r.repo === slug); if (f) rows.push(f); }
+  const ours = new Map(D.repos.map(r => [r.slug, r])); let k = 0;
+  rows.forEach(r => { const o = ours.get(r.repo); r.color = o ? o.accent : LCOL[k++ % LCOL.length]; r.short = o ? o.label : r.name; });
+  return rows.sort((a, b) => b.score - a.score);
+}
+function stats(repo){
+  if (!repo) return null;
+  const o = D.repos.find(r => r.slug === repo);
+  if (o) return {stars: o.stars, commits_24h: o.commits_24h, capped: o.commits_capped, open_prs: o.open_prs, pushed_at: o.last_activity || o.pushed_at};
+  const t = (D.team_stats || {})[repo]; return t ? {...t, capped: t.commits_capped} : null;
+}
+function renderLeaders(){
+  const ours = new Set(D.portwatch.ours || []);
+  $("#leadgrid").innerHTML = leaders(5).map(r => { const st = r.pub ? stats(r.repo) : null, h = (r.highlights || [])[0], bl = (r.blockers || [])[0];
+    return `<article class="ld card reveal" style="--acc:${esc(r.color)}">
+      <div class="ld-tags"><span class="${r.pub ? "t-pub" : "t-prv"}">${r.pub ? "#" + r.rank + " public" : "Private"}</span>${ours.has(r.repo) ? '<span class="t-ours">On stream</span>' : ""}</div>
+      <div class="ld-who">${avatar(r)}<h3>${esc(r.short)}</h3></div>
+      <div class="ld-sc"><b>${r.score}</b><small>/100</small></div>
+      <div class="ld-bar"><i data-w="${r.score}"></i></div>
+      <p class="ld-st">${esc(r.stage)}${r.fps ? ` · ~${r.fps} fps` : ""}</p>
+      ${st ? `<dl class="ld-dl"><div><dt>Stars</dt><dd>${nf(st.stars)}</dd></div><div><dt>Commits 24h</dt><dd>${nf(st.commits_24h)}${st.capped ? "+" : ""}</dd></div><div><dt>Open PRs</dt><dd>${nf(st.open_prs)}</dd></div><div><dt>Last push</dt><dd>${st.pushed_at ? ago(st.pushed_at) : "–"}</dd></div></dl>
+             <a class="ld-link" href="https://github.com/${esc(r.repo)}" target="_blank" rel="noopener">github.com/${esc(r.repo)} ↗</a>`
+           : `<p class="ld-priv">${r.based_on?.length ? `Built on <b>${esc(r.based_on.join(" + "))}</b>. ` : ""}No public code, so it can't be tested outside its streams.</p>`}
+      ${h ? `<p class="ld-ok">✓ ${esc(h)}</p>` : ""}${bl ? `<p class="ld-no">✕ ${esc(bl)}</p>` : ""}
+    </article>`; }).join("");
+}
+function renderPrivate(){
+  const pv = D.portwatch.private || [];
+  $("#private-sec").hidden = !pv.length;
+  $("#privgrid").innerHTML = pv.map(p => `<article class="pv card reveal">
+    <div class="pv-h">${avatar(p)}<div><h3>${esc(p.name)} <span class="t-prv">Private</span></h3><p>${esc(p.byline || "")}</p></div><div class="pv-sc"><b>${p.score}</b><small>/100</small><span>${esc(p.stage)}${p.fps ? ` · ~${p.fps} fps` : ""}</span></div></div>
+    ${p.summary ? `<p class="pv-sum">${esc(p.summary)}</p>` : ""}
+    <div class="pv-cols"><div class="ok"><h4>What works</h4><ul>${(p.highlights || []).map(h => `<li>${esc(h)}</li>`).join("")}</ul></div>
+      <div class="no"><h4>Blockers</h4><ul>${(p.blockers || []).map(h => `<li>${esc(h)}</li>`).join("")}</ul></div></div>
+    <p class="pv-v">Verification: ${esc(p.verification || "unknown")}${p.based_on?.length ? ` · built on ${esc(p.based_on.join(" + "))}` : ""}</p></article>`).join("");
+}
+
 function renderChallenger(){
   const pw = D.portwatch, ours = new Set(pw.ours || []);
   const c = pw.ranked.slice(0, 3).find(r => !ours.has(r.repo));
@@ -130,6 +174,7 @@ function renderChallenger(){
     <div><div class="tags"><span class="pill red">${c.rank === 1 ? "New #1" : "Challenger #" + c.rank}</span>${c.private ? '<span class="pill">Private code</span>' : ""}<span class="pill">${esc(c.verification || "unverified")}</span></div>
       <h3>${esc(c.name)}</h3><p class="by">${esc(c.byline || c.approach)}${gap != null ? ` · ${gap >= 0 ? "+" : ""}${gap.toFixed(1)} vs ${esc(best.name)}` : ""}</p></div>
     <div class="big"><b>${c.score}</b><small>/100</small><span>${esc(c.stage)}${c.fps ? ` · ~${c.fps} fps` : ""}</span></div>
+    ${(() => { const st = stats(c.repo); return st ? `<p class="chal-st">★ <b>${nf(st.stars)}</b> stars · <b>${nf(st.commits_24h)}${st.capped ? "+" : ""}</b> commits 24h · <b>${nf(st.open_prs)}</b> open PRs · last push ${st.pushed_at ? ago(st.pushed_at) : "–"}</p>` : ""; })()}
     <div class="cols"><div class="ok"><h4>What works</h4><ul>${(c.highlights || []).map(h => `<li>${esc(h)}</li>`).join("")}</ul></div>
       <div class="no"><h4>Blockers</h4><ul>${(c.blockers || []).map(h => `<li>${esc(h)}</li>`).join("")}</ul></div></div>`;
 }
@@ -262,18 +307,12 @@ function animate(){
 
 /* ---------- race bars (PortWatch scores) ---------- */
 function renderRaceBars(){
-  const pw = D.portwatch, ours = pw.ours || [], rk = pw.ranked || [];
-  if (!rk.length) return;
-  const rows = [];
-  if (!ours.includes(rk[0].repo)) rows.push(rk[0]);
-  for (const slug of ours) { const r = rk.find(x => x.repo === slug); if (r) rows.push(r); }
-  const ticks = (pw.milestones || []).filter(m => m.at > 0 && m.at < 100);
-  const [a, b] = rk;
-  const ourRows = rows.filter(r => ours.includes(r.repo)).sort((x, y) => y.score - x.score);
-  const h2h = ourRows.length === 2 ? ` · ${esc(ourRows[0].name)} leads ${esc(ourRows[1].name)} by <b>${(ourRows[0].score - ourRows[1].score).toFixed(1).replace(/\.0$/, "")}</b>` : "";
-  $("#rbars").innerHTML = `<p class="rb-lead"><b>${esc(a.name)}</b> leads <b>${esc(b.name)}</b> by <b>${(a.score - b.score).toFixed(1).replace(/\.0$/, "")} pts</b>${h2h}</p>` +
-    rows.map(r => `<div class="rb"><span class="rb-n">${esc(r.name)}</span><div class="rb-t" role="img" aria-label="${esc(r.name)}: ${r.score} of 100, ${esc(r.stage)}">
-      ${ticks.map(m => `<i class="rb-k" style="left:${m.at}%"></i>`).join("")}<span class="rb-f ${ours.includes(r.repo) ? "ours" : ""}" style="width:${r.score}%"></span></div>
+  const pw = D.portwatch; if (!(pw.ranked || []).length) return;
+  const rows = leaders(5), ticks = (pw.milestones || []).filter(m => m.at > 0 && m.at < 100);
+  const [a, b] = rows;
+  $("#rbars").innerHTML = `<p class="rb-lead"><b>${esc(a.short)}</b>${a.pub ? "" : " (private)"} leads <b>${esc(b.short)}</b> by <b>${(a.score - b.score).toFixed(1).replace(/\.0$/, "")} pts</b></p>` +
+    rows.map(r => `<div class="rb"><span class="rb-n">${esc(r.short)}${r.pub ? "" : ' <em class="t-prv">private</em>'}</span><div class="rb-t" role="img" aria-label="${esc(r.name)}: ${r.score} of 100, ${esc(r.stage)}">
+      ${ticks.map(m => `<i class="rb-k" style="left:${m.at}%"></i>`).join("")}<span class="rb-f" style="width:${r.score}%;background:${r.color}"></span></div>
       <span class="rb-s">${r.score}<small>${esc(r.stage)}</small></span></div>`).join("");
 }
 
@@ -334,7 +373,7 @@ async function load(){
     const r = await fetch(`data/live.json?t=${Math.floor(Date.now() / 6e4)}`, {cache: "no-cache"});
     D = await r.json();
   } catch (e) { $("#upd").textContent = "data unavailable"; return; }
-  renderHero(); renderRace(); renderTrend(); renderTimeline(); renderChallenger(); renderProjects(); renderNews(); renderLive(); renderStatus(); renderRadar(); renderPress(); renderStars(); renderRaceBars(); renderLiveBoard(); renderTicker(); animate(); clock();
+  renderHero(); renderLeaders(); renderPrivate(); renderRace(); renderTrend(); renderTimeline(); renderChallenger(); renderProjects(); renderNews(); renderLive(); renderStatus(); renderRadar(); renderPress(); renderStars(); renderRaceBars(); renderLiveBoard(); renderTicker(); animate(); clock();
   $("#built").textContent = new Date(D.built_at).toUTCString();
 }
 setInterval(() => { if (D) $("#upd").textContent = `updated ${ago(D.built_at)}`; }, 1000);

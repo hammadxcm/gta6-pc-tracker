@@ -43,7 +43,7 @@
 
 <nav class="nav" id="nav" aria-label="Main">
   <a class="logo" href="#top"><span class="lmk">P</span>PORTING RACE</a>
-  <div class="links"><a href="#status">Status</a><a href="#board-sec">Live board</a><a href="#race">Tracker</a><a href="#radar">Radar</a><a href="#trend">Progress</a><a href="#projects">Projects</a><a href="#changes">Changes</a><a href="#news">News</a><a href="#press">Press</a><a href="#live">Live</a></div>
+  <div class="links"><a href="#status">Status</a><a href="#board-sec">Live board</a><a href="#leaders">Leaders</a><a href="#race">Tracker</a><a href="#radar">Radar</a><a href="#trend">Progress</a><a href="#projects">Projects</a><a href="#changes">Changes</a><a href="#news">News</a><a href="#press">Press</a><a href="#live">Live</a></div>
   <a class="nav-live" href="https://youtube.com/live/12Ob2yGzxbU" target="_blank" rel="noopener" aria-label="Watch the live stream on YouTube"><i class="dot"></i>LIVE</a>
   <span class="upd" id="upd"><!--SSR:upd-->loading…<!--/SSR--></span>
 </nav>
@@ -82,8 +82,18 @@
   <div class="lboard" id="lboard"><!--SSR:lboard--><!--/SSR--></div>
 </section>
 
+<section class="sec" id="leaders">
+  <div class="sec-h"><h2>The leaders</h2><p>The top five efforts side by side: PortWatch score and stage, plus live GitHub stats for public code.</p></div>
+  <div class="leaders" id="leadgrid"><!--SSR:leaders--><!--/SSR--></div>
+</section>
+
+<section class="sec" id="private-sec">
+  <div class="sec-h"><h2>Private builds</h2><p>Builds with no public code. PortWatch lists them without a rank: nobody outside the group can test them. They still count for the headline number.</p></div>
+  <div class="privgrid" id="privgrid"><!--SSR:private--><!--/SSR--></div>
+</section>
+
 <section class="sec" id="race">
-  <div class="sec-h"><h2>Tracker</h2><p>Every effort to run GTA VI on PC, scored 0–100 on one ladder from groundwork to stable play. Click a team for details.</p></div>
+  <div class="sec-h"><h2>Tracker</h2><p>Every effort to run GTA VI on PC, scored 0–100: a ladder up to Playable (50), then story, rendering, performance and stability up to Complete (100). Click a team for details.</p></div>
   <div class="ladder card" id="ladder"></div>
   <div class="steps" id="steps"></div>
   <div class="ctrl">

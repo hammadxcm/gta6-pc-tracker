@@ -169,6 +169,20 @@ def fill(tpl, slot, value):
     return re.sub(rf"<!--SSR:{slot}-->.*?<!--/SSR-->", lambda _: f"<!--SSR:{slot}-->{value}<!--/SSR-->", tpl, flags=re.S)
 
 
+def leaders_html(data):
+    pw = data["portwatch"]
+    rows = sorted([{**r, "pub": True} for r in pw["ranked"]] + [{**x, "pub": False} for x in pw.get("private", [])], key=lambda r: -r["score"])[:5]
+    return "\n".join(f'<article class="ld card"><div class="ld-tags"><span class="{"t-pub" if r["pub"] else "t-prv"}">'
+                     f'{"#" + str(r["rank"]) + " public" if r["pub"] else "Private"}</span></div><div class="ld-who">{_avatar(r)}<h3>{e(r["name"])}</h3></div>'
+                     f'<div class="ld-sc"><b>{r["score"]:g}</b><small>/100</small></div><p class="ld-st">{e(r["stage"])}</p></article>' for r in rows)
+
+
+def private_html(data):
+    return "\n".join(f'<article class="pv card"><div class="pv-h">{_avatar(x)}<div><h3>{e(x["name"])} <span class="t-prv">Private</span></h3>'
+                     f'<p>{e(x.get("byline") or "")}</p></div><div class="pv-sc"><b>{x["score"]:g}</b><small>/100</small><span>{e(x["stage"])}</span></div></div>'
+                     f'<p class="pv-sum">{e(x.get("summary") or "")}</p></article>' for x in data["portwatch"].get("private", []))
+
+
 def render(data):
     pw, L = data["portwatch"], data["portwatch"]["leader"]
     tpl = (SITE / "index.template.html").read_text()
@@ -177,10 +191,13 @@ def render(data):
     og_desc = (f"{L['name']} leads at {L['score']}/100 ({L['stage']}). Live scores, GitHub stats and news for XCL, VIctory "
                f"and every team racing to run GTA VI on PC.") if L else "Live tracker of every effort to run GTA VI on PC."
     out = (tpl.replace("__SITE_URL__", SITE_URL).replace("__OG_DESC__", e(og_desc)).replace("__JSON_LD__", json_ld(data, q)))
-    out = fill(out, "score", e(L["score"]) if L else "–")
+    H = pw.get("headline") or L
+    out = fill(out, "score", e(H["score"]) if H else "–")
     out = fill(out, "lead", f'Leader <b>{e(L["name"])}</b> · {e(L["stage"])} · top-3 average <b>{pw["top3"]}</b> · <b>{pw["watched"]}</b> efforts watched' if L else "")
     out = fill(out, "board", board_html(pw))
     out = fill(out, "faq", faq_html(q))
+    out = fill(out, "leaders", leaders_html(data))
+    out = fill(out, "private", private_html(data))
     for slot, value in {**intel_html(data), **live_html(data)}.items():
         if value:
             out = fill(out, slot, value)
