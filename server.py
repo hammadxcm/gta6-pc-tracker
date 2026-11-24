@@ -9,6 +9,7 @@ Stdlib only. State is kept in memory and star history in data/history.json.
 """
 import http.client
 import json
+import math
 import os
 import re
 import threading
@@ -408,7 +409,7 @@ def poll_loop():
 # Live port-race data from https://portwatch-vi.xyz (data/tracker.json). Scoring mirrors
 # their assets/js/scoring.js so ranks match the site. Strings are untrusted -> escaped in UI.
 PORTWATCH_URL = os.environ.get("PORTWATCH_URL", "https://portwatch-vi.xyz/data/tracker.json")
-PORTWATCH_POLL = int(os.environ.get("PORTWATCH_POLL", "300"))
+PORTWATCH_POLL = int(os.environ.get("PORTWATCH_POLL", "120"))
 # PortWatch scale (since 2026-11-24): a ladder up to Playable (50), then four quality tracks fill 50-100.
 MILESTONES = [("groundwork", "Groundwork", 0), ("loads", "Exe runs", 10), ("boots", "First frame", 20),
               ("menu", "Main menu", 30), ("world", "In the world", 40), ("playable", "Playable", 50), ("complete", "Complete", 100)]
@@ -464,7 +465,8 @@ def score_effort(e: dict) -> dict:
     ms = e.get("manualScore")   # PortWatch owner override
     if isinstance(ms, (int, float)):
         score = min(100.0, max(0.0, float(ms)))
-    return {"score": round(score, 1), "reached": reached, "reachedLabel": LABEL[reached], "tracks": tracks}
+    # JavaScript's Math.round(x*10)/10 rounds halves up; Python's round() rounds halves to even (57.25 -> 57.2, not 57.3)
+    return {"score": math.floor(score * 10 + 0.5) / 10, "reached": reached, "reachedLabel": LABEL[reached], "tracks": tracks}
 
 
 def poll_portwatch():
