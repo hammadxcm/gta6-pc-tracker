@@ -7,6 +7,7 @@ Usage:
 
 Stdlib only. State is kept in memory and star history in data/history.json.
 """
+import http.client
 import json
 import os
 import re
@@ -21,7 +22,7 @@ from pathlib import Path
 
 REPOS = [
     {"slug": "Marvisak/VIctory", "label": "VIctory", "tagline": "GTA VI → PC", "accent": "#ff3d81"},
-    {"slug": "ivall/xcl", "label": "XCL", "tagline": "Xbox Series → Windows", "accent": "#36d25e"},
+    {"slug": "xcl-dev/xcl", "label": "XCL", "tagline": "Xbox Series → Windows", "accent": "#36d25e"},
 ]
 
 # Elapsed counter shown on stream. Start time taken from portwatch-vi.xyz (data/tracker.json -> exe.releasedAt).
@@ -64,7 +65,7 @@ def gh(path: str, raw: bool = False, _tries: int = 3):
         except urllib.error.HTTPError as e:
             if e.code < 500 or attempt == _tries - 1:
                 raise
-        except (urllib.error.URLError, ConnectionError, TimeoutError, OSError):
+        except (urllib.error.URLError, ConnectionError, TimeoutError, OSError, http.client.HTTPException):  # incl. IncompleteRead
             if attempt == _tries - 1:
                 raise
         time.sleep(1.5 * (attempt + 1))
@@ -312,7 +313,7 @@ def poll_repo(cfg: dict) -> dict:
     merged_1h = sum(1 for p in allp if p.get("merged_at") and now - _ts(p["merged_at"]) < timedelta(hours=1))
     last_activity = max([repo["pushed_at"]] + [e["at"] for e in events[:1]])
 
-    # Fallbacks when GitHub search rejects a repo (HTTP 422 seen for ivall/xcl): count from the pulls API
+    # Fallbacks when GitHub search rejects a repo (HTTP 422 seen for the old ivall/xcl name after the repo moved to xcl-dev/xcl): count from the pulls API
     def _pr_count(state):
         try:
             items, hdrs = gh(f"/repos/{slug}/pulls?state={state}&per_page=1")
@@ -389,10 +390,14 @@ def poll_loop():
             with _lock:
                 STATE["updated_at"] = datetime.now(timezone.utc).isoformat()
                 STATE["error"] = None
+                STATE["fails"] = 0
             HISTORY_FILE.write_text(json.dumps(HISTORY))
         except Exception as e:  # keep the stream alive on API hiccups
-            STATE["error"] = f"{type(e).__name__}: {e}"
-            print("poll error:", STATE["error"], flush=True)
+            STATE["fails"] = STATE.get("fails", 0) + 1
+            msg = f"{type(e).__name__}: {e}"
+            print(f"poll error ({STATE['fails']} in a row):", msg, flush=True)
+            if STATE["fails"] >= 3:   # a single network blip shouldn't put a warning on the stream
+                STATE["error"] = msg
         STATE["checking"] = False
         STATE["next_poll_at"] = (datetime.now(timezone.utc) + timedelta(seconds=POLL)).isoformat()
         time.sleep(POLL)
@@ -445,14 +450,29 @@ def score_effort(e: dict) -> dict:
             reached = "fps30"
         if fps >= 1 and stab >= 1:
             reached = "stable"
+    ms = e.get("manualScore")   # PortWatch owner override (EDITOR.md "Owner decisions")
+    if isinstance(ms, (int, float)):
+        score = min(100.0, max(0.0, float(ms)))
     return {"score": round(score, 1), "reached": reached, "reachedLabel": LABEL[reached]}
 
 
 def poll_portwatch():
     d, _ = gh(PORTWATCH_URL)
     tracked = [e for e in d.get("efforts", []) if e.get("tier") == "tracked" and not e.get("nuked")]
-    ranked = sorted(({**score_effort(e), "e": e} for e in tracked),
-                    key=lambda r: (-r["score"], -((r["e"].get("stats") or {}).get("stars") or 0)))
+    order = lambda r: (-r["score"], -((r["e"].get("stats") or {}).get("stars") or 0))
+    everyone = sorted(({**score_effort(e), "e": e} for e in tracked), key=order)
+    # PortWatch (since 2026-11-24): only public code is ranked; private builds are listed under what they build on,
+    # unranked, but still count for the headline number.
+    is_public = lambda e: isinstance(e.get("repo"), str) and "/" in e["repo"]
+    ranked = [r for r in everyone if is_public(r["e"])]
+    names = {e.get("id"): e.get("name") for e in d.get("efforts", [])}
+    private = [{"name": str(r["e"].get("name", ""))[:40], "score": r["score"], "stage": r["reachedLabel"],
+                "fps": (r["e"].get("gta") or {}).get("fps"), "byline": str(r["e"].get("byline") or "")[:90],
+                "based_on": [names.get(b, b) for b in (r["e"].get("basedOn") or [])],
+                "summary": str(r["e"].get("summary") or "")[:220],
+                "highlights": [str(h)[:110] for h in (r["e"].get("highlights") or [])[:3]],
+                "blockers": [str(h)[:110] for h in (r["e"].get("blockers") or [])[:3]],
+                "verification": r["e"].get("verification")} for r in everyone if not is_public(r["e"])]
     repo_re = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
     out = []
     for i, r in enumerate(ranked[:40]):
@@ -471,14 +491,18 @@ def poll_portwatch():
                     "assessed_at": e.get("assessedAt"),
                     "highlights": [str(h)[:110] for h in (e.get("highlights") or [])[:3]],
                     "blockers": [str(h)[:110] for h in (e.get("blockers") or [])[:3]]})
-    top3 = ranked[:3]
-    furthest = max((next(i for i, m in enumerate(MILESTONES) if m[0] == r["reached"]) for r in ranked), default=0)
+    top3 = everyone[:3]
+    furthest = max((next(i for i, m in enumerate(MILESTONES) if m[0] == r["reached"]) for r in everyone), default=0)
+    head = everyone[0] if everyone else None
     exe = d.get("exe") or {}
     return {
         "updated": d.get("updated"),
         "fetched_at": datetime.now(timezone.utc).isoformat(),
         "exe": {k: exe.get(k) for k in ("status", "releasedAt", "expectedAt", "by")},
-        "leader": out[0] if out else None,
+        "leader": out[0] if out else None,   # top PUBLIC project (ranked #1)
+        "headline": {"name": str(head["e"].get("name", ""))[:40], "score": head["score"], "stage": head["reachedLabel"],
+                     "private": not is_public(head["e"])} if head else None,   # top of everyone, as PortWatch's headline
+        "private": private,
         "top3": round(sum(r["score"] for r in top3) / len(top3), 1) if top3 else 0,
         "furthest": MILESTONES[furthest][1],
         "tracked": len(tracked),
@@ -558,11 +582,38 @@ def _race_detect(pw: dict) -> None:
         print("race event:", e["kind"], e["text"], flush=True)
 
 
+def poll_team_stats(slugs: list[str]) -> dict:
+    """Light live GitHub stats for public race teams that aren't our two main repos (comparison scene)."""
+    out = {}
+    since = (datetime.now(timezone.utc) - timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    for slug in slugs:
+        try:
+            r, _ = gh(f"/repos/{slug}")
+            n, page = 0, 1
+            while page <= 3:
+                c, _ = gh(f"/repos/{slug}/commits?since={since}&per_page=100&page={page}")
+                n += len(c)
+                if len(c) < 100:
+                    break
+                page += 1
+            prs, h = gh(f"/repos/{slug}/pulls?state=open&per_page=1")
+            out[slug] = {"stars": r.get("stargazers_count"), "forks": r.get("forks_count"), "pushed_at": r.get("pushed_at"),
+                         "created_at": r.get("created_at"), "commits_24h": n, "commits_capped": n >= 300,
+                         "open_prs": last_page_count(h, prs), "url": r.get("html_url"),
+                         "avatar": (r.get("owner") or {}).get("avatar_url")}
+        except Exception as e:
+            print("team stats failed:", slug, e, flush=True)
+    return out
+
+
 def portwatch_loop():
     while True:
         try:
             STATE["portwatch"] = poll_portwatch()
             STATE["portwatch_error"] = None
+            ours = {c["slug"] for c in REPOS}
+            extra = [r["repo"] for r in STATE["portwatch"]["ranked"][:6] if r.get("repo") and r["repo"] not in ours]
+            STATE["team_stats"] = poll_team_stats(extra)
             try:
                 _race_detect(STATE["portwatch"])
             except Exception as e:
@@ -887,7 +938,10 @@ def music_info() -> dict | None:
     """Playlist (music/playlist.json) + when stream.py started the audio, for the now-playing card."""
     try:
         pl = json.loads((ROOT / "music" / "playlist.json").read_text())
-        started = json.loads((DATA / "music_started.json").read_text()).get("started_ms")
+        try:   # written by stream.py; absent in OBS mode, where the page's own audio clock is used
+            started = json.loads((DATA / "music_started.json").read_text()).get("started_ms")
+        except Exception:
+            started = None
         return {"tracks": pl.get("tracks", []), "total": pl.get("total"), "started_ms": started}
     except Exception:
         return None
@@ -914,6 +968,18 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_header("Cache-Control", "no-store")
             self.end_headers()
             self.wfile.write(body)
+            return
+        if self.path.split("?")[0] == "/music/mix.m4a":   # OBS mode: the page plays the music itself
+            f = ROOT / "music" / "mix.m4a"
+            if not f.is_file():
+                self.send_error(404); return
+            data = f.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "audio/mp4")
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Accept-Ranges", "none")
+            self.end_headers()
+            self.wfile.write(data)
             return
         super().do_GET()
 
