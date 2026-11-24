@@ -128,6 +128,40 @@ def json_ld(data, q):
     return json.dumps({"@context": "https://schema.org", "@graph": graph}, ensure_ascii=False).replace("</", "<\\/")
 
 
+def _num(x):
+    return f"{x:g}" if isinstance(x, (int, float)) else e(x)
+
+
+def live_html(data):
+    """SEO snapshot of race bars, live board stats and the press ticker (JS replaces it with live versions)."""
+    pw, out = data["portwatch"], {}
+    rk, ours = pw.get("ranked") or [], pw.get("ours") or []
+    if len(rk) >= 2:
+        rows = ([rk[0]] if rk[0].get("repo") not in ours else []) + [r for s_ in ours for r in rk if r.get("repo") == s_]
+        mine = sorted([r for r in rows if r.get("repo") in ours], key=lambda r: -r["score"])
+        h2h = (f' · {e(mine[0]["name"])} leads {e(mine[1]["name"])} by <b>{_num(round(mine[0]["score"] - mine[1]["score"], 1))}</b>'
+               if len(mine) == 2 else "")
+        out["rbars"] = (f'<p class="rb-lead"><b>{e(rk[0]["name"])}</b> leads <b>{e(rk[1]["name"])}</b> by '
+                        f'<b>{_num(round(rk[0]["score"] - rk[1]["score"], 1))} pts</b>{h2h}</p>' +
+                        "".join(f'<div class="rb"><span class="rb-n">{e(r["name"])}</span><div class="rb-t">'
+                                f'<span class="rb-f{" ours" if r.get("repo") in ours else ""}" style="width:{r["score"]}%"></span></div>'
+                                f'<span class="rb-s">{_num(r["score"])}<small>{e(r["stage"])}</small></span></div>' for r in rows))
+    cards = []
+    for r in data.get("repos", []):
+        tiles = [(r.get("stars"), "Stars"), (r.get("merged_today"), "Merged today"), (r.get("commits_today"), "Commits today"),
+                 (r.get("prs_opened_1h"), "PRs opened · 1h"), (r.get("open_prs"), "Open PRs")]
+        evs = "".join(f'<li class="lb-ev"><span class="av ini">{e((ev.get("by") or "?")[:2].upper())}</span><div class="lb-m">'
+                      f'<p><span class="bd {e(ev["kind"])}">{e(ev["kind"].upper())}</span>{e(ev["title"])}</p>'
+                      f'<s>#{ev["n"]} by {e(ev.get("by"))}</s></div></li>' for ev in (r.get("events") or [])[:6])
+        cards.append(f'<article class="lb card" style="--acc:{e(r.get("accent"))}"><header class="lb-top"><h3>{e(r["label"])}</h3></header>'
+                     f'<div class="lb-tiles">{"".join(f"<div class='st'><b>{(v if v is not None else 0):,}</b><span>{l}</span></div>" for v, l in tiles)}</div>'
+                     f'<ol class="lb-list">{evs}</ol></article>')
+    out["lboard"] = "".join(cards)
+    press = ((data.get("intel") or {}).get("press") or [])[:12]
+    out["ticker"] = "".join(f'<li><b>{e(p["outlet"])}</b> {e(p["title"])}</li>' for p in press)
+    return out
+
+
 def fill(tpl, slot, value):
     return re.sub(rf"<!--SSR:{slot}-->.*?<!--/SSR-->", lambda _: f"<!--SSR:{slot}-->{value}<!--/SSR-->", tpl, flags=re.S)
 
@@ -144,7 +178,7 @@ def render(data):
     out = fill(out, "lead", f'Leader <b>{e(L["name"])}</b> · {e(L["stage"])} · top-3 average <b>{pw["top3"]}</b> · <b>{pw["watched"]}</b> efforts watched' if L else "")
     out = fill(out, "board", board_html(pw))
     out = fill(out, "faq", faq_html(q))
-    for slot, value in intel_html(data).items():
+    for slot, value in {**intel_html(data), **live_html(data)}.items():
         if value:
             out = fill(out, slot, value)
     out = fill(out, "upd", f"updated {built.strftime('%H:%M UTC')}")

@@ -16,7 +16,7 @@ import server  # noqa: E402
 
 import urllib.request
 
-KEEP = ("history", "slug", "label", "tagline", "accent", "description", "url", "created_at", "pushed_at", "stars", "forks",
+KEEP = ("commits_today", "prs_opened_1h", "prs_merged_1h", "pr_velocity", "last_activity", "history", "slug", "label", "tagline", "accent", "description", "url", "created_at", "pushed_at", "stars", "forks",
         "open_issues", "open_prs", "merged_today", "total_prs", "release", "contributors", "commits_24h",
         "commits_by_hour", "commits_capped", "leaders", "events", "progress")
 

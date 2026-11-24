@@ -259,12 +259,82 @@ function animate(){
   document.querySelectorAll(".reveal, .ladder").forEach(el => io.observe(el));
 }
 
+
+/* ---------- race bars (PortWatch scores) ---------- */
+function renderRaceBars(){
+  const pw = D.portwatch, ours = pw.ours || [], rk = pw.ranked || [];
+  if (!rk.length) return;
+  const rows = [];
+  if (!ours.includes(rk[0].repo)) rows.push(rk[0]);
+  for (const slug of ours) { const r = rk.find(x => x.repo === slug); if (r) rows.push(r); }
+  const ticks = (pw.milestones || []).filter(m => m.at > 0 && m.at < 100);
+  const [a, b] = rk;
+  const ourRows = rows.filter(r => ours.includes(r.repo)).sort((x, y) => y.score - x.score);
+  const h2h = ourRows.length === 2 ? ` · ${esc(ourRows[0].name)} leads ${esc(ourRows[1].name)} by <b>${(ourRows[0].score - ourRows[1].score).toFixed(1).replace(/\.0$/, "")}</b>` : "";
+  $("#rbars").innerHTML = `<p class="rb-lead"><b>${esc(a.name)}</b> leads <b>${esc(b.name)}</b> by <b>${(a.score - b.score).toFixed(1).replace(/\.0$/, "")} pts</b>${h2h}</p>` +
+    rows.map(r => `<div class="rb"><span class="rb-n">${esc(r.name)}</span><div class="rb-t" role="img" aria-label="${esc(r.name)}: ${r.score} of 100, ${esc(r.stage)}">
+      ${ticks.map(m => `<i class="rb-k" style="left:${m.at}%"></i>`).join("")}<span class="rb-f ${ours.includes(r.repo) ? "ours" : ""}" style="width:${r.score}%"></span></div>
+      <span class="rb-s">${r.score}<small>${esc(r.stage)}</small></span></div>`).join("");
+}
+
+/* ---------- live board ---------- */
+let SEEN = null, NEWCOUNT = 0;
+const evKey = (slug, e) => `${slug}#${e.n}:${e.kind}`;
+function velChart(v, accent){
+  if (!v) return "";
+  const W = 300, H = 70, n = 12, bw = W / n, mx = Math.max(1, ...v.opened, ...v.merged);
+  const covO = Math.max(1, v.opened_cov_h || 0), covM = Math.max(1, v.merged_cov_h || 0);
+  let g = "";
+  for (let i = 0; i < n; i++) {
+    const hAgo = n - 1 - i, x = i * bw;
+    const okO = hAgo < covO, okM = hAgo < covM;
+    if (!okO && !okM) { g += `<rect class="vc-na" x="${x + 2}" y="0" width="${bw - 4}" height="${H}" rx="3"/>`; continue; }
+    const ho = okO ? v.opened[i] / mx * (H - 4) : 0, hm = okM ? v.merged[i] / mx * (H - 4) : 0;
+    g += `<rect x="${x + 3}" y="${H - ho}" width="${bw / 2 - 3}" height="${ho}" rx="2" fill="${accent}"><title>${hAgo}h ago: ${v.opened[i]} opened</title></rect>`;
+    g += `<rect x="${x + bw / 2}" y="${H - hm}" width="${bw / 2 - 3}" height="${hm}" rx="2" fill="#a78bfa"><title>${hAgo}h ago: ${v.merged[i]} merged</title></rect>`;
+  }
+  return `<div class="vc"><div class="vc-h"><span class="h4">PRs per hour · 12h</span><span class="vc-lg"><i style="background:${accent}"></i>opened<i style="background:#a78bfa"></i>merged<i class="na"></i>no data</span></div>
+    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Pull requests opened and merged per hour over the last 12 hours">${g}</svg><div class="hist-l"><span>12h ago</span><span>now</span></div></div>`;
+}
+function renderLiveBoard(){
+  const fresh = new Set(), first = SEEN === null; if (first) SEEN = new Set();
+  for (const r of D.repos) for (const e of r.events || []) { const k = evKey(r.slug, e); if (!SEEN.has(k)) { if (!first) { fresh.add(k); if (e.kind === "opened") NEWCOUNT++; } SEEN.add(k); } }
+  const pill = $("#newpill");
+  if (NEWCOUNT) { pill.hidden = false; pill.textContent = `${NEWCOUNT} new PR${NEWCOUNT === 1 ? "" : "s"} since you opened this page`; }
+  $("#lboard").innerHTML = D.repos.map(r => {
+    const tiles = [[r.stars, "Stars"], [r.merged_today, "Merged today"], [r.commits_today, "Commits today"], [r.prs_opened_1h, "PRs opened · 1h"], [r.open_prs, "Open PRs"]];
+    const evs = (r.events || []).slice(0, 8).map(e => {
+      const age = (Date.now() - new Date(e.at)) / 6e4, k = evKey(r.slug, e);
+      const kind = e.kind === "opened" ? (age < 15 ? "new" : e.draft ? "draft" : "opened") : e.kind;
+      const lbl = {new: "NEW PR", opened: "OPENED", draft: "DRAFT", merged: "MERGED", closed: "CLOSED"}[kind] || kind.toUpperCase();
+      const av = e.avatar ? `<img class="av" src="${esc(e.avatar)}&s=64" alt="" width="32" height="32" loading="lazy" decoding="async" data-ini="${esc((e.by || "?").slice(0, 2).toUpperCase())}" onerror="this.outerHTML='<span class=&quot;av ini&quot;>'+this.dataset.ini+'</span>'">`
+                         : `<span class="av ini">${esc((e.by || "?").slice(0, 2).toUpperCase())}</span>`;
+      return `<li class="lb-ev ${fresh.has(k) ? "glow" : ""}">${av}<div class="lb-m"><p><span class="bd ${kind}">${lbl}</span>${esc(e.title)}</p>
+        <s>#${e.n} by ${esc(e.by)}${e.additions != null ? ` · <span class="add">+${nf(e.additions)}</span> <span class="del">−${nf(e.deletions)}</span>` : ""}</s></div><time datetime="${esc(e.at)}">${ago(e.at)}</time></li>`;
+    }).join("");
+    return `<article class="lb card" style="--acc:${esc(r.accent)}">
+      <header class="lb-top"><h3>${esc(r.label)}</h3><span class="lb-act">last activity <b>${ago(r.last_activity || r.pushed_at)}</b></span></header>
+      <div class="lb-tiles">${tiles.map(([v, l]) => `<div class="st"><b>${nf(v)}</b><span>${l}</span></div>`).join("")}</div>
+      ${velChart(r.pr_velocity, r.accent)}
+      <ol class="lb-list" aria-label="Latest pull requests on ${esc(r.label)}">${evs}</ol></article>`;
+  }).join("");
+}
+
+/* ---------- press ticker ---------- */
+function renderTicker(){
+  const items = ((D.intel || {}).press || []).slice(0, 12);
+  if (!items.length) { $("#ticker").hidden = true; return; }
+  const li = items.map(p => `<li><b>${esc(p.outlet)}</b> ${esc(p.title)} <time>${ago(p.at)}</time></li>`).join("");
+  $("#tktrack").innerHTML = li + li.replace(/<li>/g, '<li aria-hidden="true">');   // duplicated for a seamless loop
+  $("#tktrack").style.setProperty("--dur", Math.max(60, items.length * 9) + "s");
+}
+
 async function load(){
   try {
     const r = await fetch(`data/live.json?t=${Math.floor(Date.now() / 6e4)}`, {cache: "no-cache"});
     D = await r.json();
   } catch (e) { $("#upd").textContent = "data unavailable"; return; }
-  renderHero(); renderRace(); renderTrend(); renderTimeline(); renderChallenger(); renderProjects(); renderNews(); renderLive(); renderStatus(); renderRadar(); renderPress(); renderStars(); animate(); clock();
+  renderHero(); renderRace(); renderTrend(); renderTimeline(); renderChallenger(); renderProjects(); renderNews(); renderLive(); renderStatus(); renderRadar(); renderPress(); renderStars(); renderRaceBars(); renderLiveBoard(); renderTicker(); animate(); clock();
   $("#built").textContent = new Date(D.built_at).toUTCString();
 }
 setInterval(() => { if (D) $("#upd").textContent = `updated ${ago(D.built_at)}`; }, 1000);

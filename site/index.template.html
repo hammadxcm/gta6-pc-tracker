@@ -43,10 +43,12 @@
 
 <nav class="nav" id="nav" aria-label="Main">
   <a class="logo" href="#top"><span class="lmk">P</span>PORTING RACE</a>
-  <div class="links"><a href="#status">Status</a><a href="#race">Tracker</a><a href="#radar">Radar</a><a href="#trend">Progress</a><a href="#projects">Projects</a><a href="#changes">Changes</a><a href="#news">News</a><a href="#press">Press</a><a href="#live">Live</a></div>
+  <div class="links"><a href="#status">Status</a><a href="#board-sec">Live board</a><a href="#race">Tracker</a><a href="#radar">Radar</a><a href="#trend">Progress</a><a href="#projects">Projects</a><a href="#changes">Changes</a><a href="#news">News</a><a href="#press">Press</a><a href="#live">Live</a></div>
   <a class="nav-live" href="https://www.youtube.com/watch?v=8CrRwSME_aM" target="_blank" rel="noopener" aria-label="Watch the live stream on YouTube"><i class="dot"></i>LIVE</a>
   <span class="upd" id="upd"><!--SSR:upd-->loading…<!--/SSR--></span>
 </nav>
+
+<div class="ticker" id="ticker" role="region" aria-label="Latest headlines about the race"><span class="tk-lbl">PRESS</span><div class="tk-view"><ul class="tk-track" id="tktrack"><!--SSR:ticker--><!--/SSR--></ul></div></div>
 
 <main id="main">
 <header class="hero" id="top">
@@ -55,6 +57,7 @@
     <h1>How close is <span class="grad">GTA VI on PC?</span></h1>
     <div class="score"><b id="lead-score"><!--SSR:score-->–<!--/SSR--></b><small>/100</small></div>
     <p class="lead-line" id="lead-line"><!--SSR:lead--><!--/SSR--></p>
+    <div class="rbars" id="rbars" aria-label="Who's ahead"><!--SSR:rbars--><!--/SSR--></div>
     <div class="cta"><a class="btn hot" href="#race">Open the tracker</a><a class="btn live-cta" href="https://www.youtube.com/watch?v=8CrRwSME_aM" id="live-btn" target="_blank" rel="noopener"><i class="dot"></i>Watch live on YouTube</a><a class="btn yt-sub" href="https://www.youtube.com/@hammadxcm?sub_confirmation=1" target="_blank" rel="noopener"><svg class="yt-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M23 7.2a3 3 0 0 0-2.1-2.1C19 4.6 12 4.6 12 4.6s-7 0-8.9.5A3 3 0 0 0 1 7.2 31 31 0 0 0 .5 12a31 31 0 0 0 .5 4.8 3 3 0 0 0 2.1 2.1c1.9.5 8.9.5 8.9.5s7 0 8.9-.5a3 3 0 0 0 2.1-2.1 31 31 0 0 0 .5-4.8 31 31 0 0 0-.5-4.8z" fill="currentColor"/><path d="M9.8 15.1 15.6 12 9.8 8.9z" fill="#ff2d55"/></svg>Subscribe</a></div>
   </div>
   <aside class="clock">
@@ -71,6 +74,12 @@
     <article class="st-card card" id="official"><!--SSR:official--><!--/SSR--></article>
     <article class="st-card card" id="takedowns"><!--SSR:takedowns--><!--/SSR--></article>
   </div>
+</section>
+
+<section class="sec" id="board-sec" aria-labelledby="board-h">
+  <div class="sec-h lb-h"><div><h2 id="board-h">Live board</h2><p>Every pull request and commit on the two open projects, refreshed every few minutes.</p></div>
+    <span class="newpill" id="newpill" hidden aria-live="polite"></span></div>
+  <div class="lboard" id="lboard"><!--SSR:lboard--><!--/SSR--></div>
 </section>
 
 <section class="sec" id="race">

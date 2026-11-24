@@ -2,7 +2,7 @@
 """Repo Live: polls GitHub for a set of repos and serves a live dashboard.
 
 Usage:
-    GITHUB_TOKEN=ghp_xxx python3 server.py          # token optional but recommended
+    python3 server.py   # GitHub token read from ~/.config/repo-live/github_token (or $GITHUB_TOKEN)
     open http://localhost:8080
 
 Stdlib only. State is kept in memory and star history in data/history.json.
@@ -235,7 +235,7 @@ def poll_repo(cfg: dict) -> dict:
                 break
             more, _ = gh(f"/repos/{slug}/commits?per_page=100&page={page}&since={since}")
             commits += more
-    pulls, _ = gh(f"/repos/{slug}/pulls?state=all&sort=updated&direction=desc&per_page=50")
+    pulls, _ = gh(f"/repos/{slug}/pulls?state=all&sort=created&direction=desc&per_page=100")
     contrib, ch = gh(f"/repos/{slug}/contributors?per_page=1&anon=1")
     try:
         rel, _ = gh(f"/repos/{slug}/releases/latest")
@@ -288,6 +288,30 @@ def poll_repo(cfg: dict) -> dict:
         elif cached:
             e.update(cached[1])
 
+    # PR velocity: opened / merged per hour over the last 12h, plus "today" and "last hour" counts
+    try:
+        closed, _ = gh(f"/repos/{slug}/pulls?state=closed&sort=updated&direction=desc&per_page=100")
+    except Exception:
+        closed = []
+    by_num = {p["number"]: p for p in closed}
+    by_num.update({p["number"]: p for p in pulls})
+    allp = list(by_num.values())
+    # how far back each sample reaches (full 100 => window is only as old as its oldest item)
+    open_cov = 12 if len(pulls) < 100 else min(12, int((now - _ts(pulls[-1]["created_at"])).total_seconds() // 3600))
+    merge_cov = 12 if len(closed) < 100 else min(12, int((now - _ts(closed[-1]["updated_at"])).total_seconds() // 3600))
+    vel_open, vel_merge = [0] * 12, [0] * 12
+    for p in allp:
+        for key, arr in (("created_at", vel_open), ("merged_at", vel_merge)):
+            if p.get(key):
+                h = int((now - _ts(p[key])).total_seconds() // 3600)
+                if 0 <= h < 12:
+                    arr[11 - h] += 1
+    today0 = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    commits_today = sum(1 for c in commits if _ts(c["commit"]["author"]["date"]) >= today0)
+    opened_1h = sum(1 for p in pulls if now - _ts(p["created_at"]) < timedelta(hours=1))
+    merged_1h = sum(1 for p in allp if p.get("merged_at") and now - _ts(p["merged_at"]) < timedelta(hours=1))
+    last_activity = max([repo["pushed_at"]] + [e["at"] for e in events[:1]])
+
     merged_recent = [p for p in pulls if p.get("merged_at")]
     merged_recent.sort(key=lambda p: p["merged_at"], reverse=True)
 
@@ -313,6 +337,11 @@ def poll_repo(cfg: dict) -> dict:
         "release": release,
         "contributors": last_page_count(ch, contrib),
         "commits_24h": sum(hours.values()),
+        "commits_today": commits_today,
+        "prs_opened_1h": opened_1h,
+        "prs_merged_1h": merged_1h,
+        "pr_velocity": {"opened": vel_open, "merged": vel_merge, "opened_cov_h": open_cov, "merged_cov_h": merge_cov},
+        "last_activity": last_activity,
         "commits_by_hour": [hours.get(h, 0) for h in range(23, -1, -1)],  # oldest -> newest
         "commits_capped": len(commits) % 100 == 0 and sum(hours.values()) == len(commits),
         "leaders": [{"login": l, "n": n, "avatar": avatars.get(l)} for l, n in authors.most_common(5)],
@@ -691,7 +720,6 @@ def _intel_press() -> tuple[list, list]:
 
 def _intel_radar(pw_ranked_repos: set, candidates: list) -> list:
     repos = dict(RADAR_SEED)
-    tok = {"Authorization": f"Bearer {TOKEN}"} if TOKEN else {}
     since = (datetime.now(timezone.utc) - timedelta(days=10)).strftime("%Y-%m-%d")
     for c in candidates:   # PortWatch scout picks with high substance
         if c.get("repo") and (c.get("substance") or 0) >= 85 and (c.get("stars") or 0) >= 5 and not _RADAR_SKIP.search(c["repo"]):
@@ -777,6 +805,36 @@ def intel_loop():
             print("intel error:", type(e).__name__, e, flush=True)
         time.sleep(INTEL_POLL)
 
+
+# ------------------------------------------------------------ site refresh backup
+# GitHub often skips/delays scheduled workflows on new repos. While this server runs, make sure the
+# public site rebuilds at least every SITE_REFRESH_MIN minutes by dispatching the Pages workflow via
+# the local `gh` login (no extra token stored here).
+SITE_REPO = os.environ.get("SITE_REPO", "hammadxcm/gta6-pc-tracker")
+SITE_REFRESH_MIN = int(os.environ.get("SITE_REFRESH_MIN", "20"))
+
+
+def site_refresh_loop():
+    import shutil
+    import subprocess
+    if not shutil.which("gh"):
+        print("site refresh: gh CLI not found, skipping backup trigger", flush=True)
+        return
+    time.sleep(90)
+    while True:
+        try:
+            out = subprocess.run(["gh", "run", "list", "-R", SITE_REPO, "--workflow", "pages.yml", "--limit", "1",
+                                  "--json", "createdAt,status"], capture_output=True, text=True, timeout=60)
+            runs = json.loads(out.stdout or "[]")
+            age = (datetime.now(timezone.utc) - _ts(runs[0]["createdAt"])).total_seconds() / 60 if runs else 1e9
+            busy = bool(runs) and runs[0]["status"] in ("queued", "in_progress", "waiting", "pending")
+            if age > SITE_REFRESH_MIN and not busy:
+                r = subprocess.run(["gh", "workflow", "run", "pages.yml", "-R", SITE_REPO], capture_output=True, text=True, timeout=60)
+                print(f"site refresh: last build {age:.0f} min ago -> dispatched ({r.returncode})", flush=True)
+        except Exception as e:
+            print("site refresh error:", e, flush=True)
+        time.sleep(300)
+
 # ------------------------------------------------------------------------- slides
 SLIDES = STATIC / "slides"
 IMG_EXT = {".jpg", ".jpeg", ".png", ".webp", ".avif"}
@@ -843,5 +901,7 @@ if __name__ == "__main__":
     threading.Thread(target=portwatch_loop, daemon=True).start()
     threading.Thread(target=watch_loop, daemon=True).start()
     threading.Thread(target=intel_loop, daemon=True).start()
+    threading.Thread(target=site_refresh_loop, daemon=True).start()
     print(f"Repo Live on http://localhost:{PORT}  (poll every {POLL}s, token={'yes' if TOKEN else 'no'})")
-    ThreadingHTTPServer(("0.0.0.0", PORT), Handler).serve_forever()
+    # Local-only by default: the stream's own browser is on this machine. Set BIND=0.0.0.0 to share on a LAN.
+    ThreadingHTTPServer((os.environ.get("BIND", "127.0.0.1"), PORT), Handler).serve_forever()
