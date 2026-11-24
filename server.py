@@ -312,6 +312,30 @@ def poll_repo(cfg: dict) -> dict:
     merged_1h = sum(1 for p in allp if p.get("merged_at") and now - _ts(p["merged_at"]) < timedelta(hours=1))
     last_activity = max([repo["pushed_at"]] + [e["at"] for e in events[:1]])
 
+    # Fallbacks when GitHub search rejects a repo (HTTP 422 seen for ivall/xcl): count from the pulls API
+    def _pr_count(state):
+        try:
+            items, hdrs = gh(f"/repos/{slug}/pulls?state={state}&per_page=1")
+            return last_page_count(hdrs, items)
+        except Exception:
+            return None
+    if open_prs is None:
+        open_prs = _pr_count("open")
+    if total_prs is None:
+        total_prs = _pr_count("all")
+    if merged_today is None:
+        try:
+            got, page = [], 1
+            while page <= 5:
+                batch, _ = gh(f"/repos/{slug}/pulls?state=closed&sort=updated&direction=desc&per_page=100&page={page}")
+                got += batch
+                if len(batch) < 100 or _ts(batch[-1]["updated_at"]) < today0:
+                    break
+                page += 1
+            merged_today = sum(1 for p in got if p.get("merged_at") and _ts(p["merged_at"]) >= today0)
+        except Exception:
+            merged_today = None
+
     merged_recent = [p for p in pulls if p.get("merged_at")]
     merged_recent.sort(key=lambda p: p["merged_at"], reverse=True)
 
