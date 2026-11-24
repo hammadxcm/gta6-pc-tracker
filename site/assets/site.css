@@ -256,3 +256,7 @@ img{display:block}
   .count{margin-left:0}
   .timeline li{grid-template-columns:78px 24px 1fr}
 }
+/* keep long links / titles from stretching cards on small screens */
+.proj,.eff,.nc,.chal>div{min-width:0}
+.proj-h a,.ev p,.eff .facts a{overflow-wrap:anywhere}
+@media (max-width:900px){.projects,.board,.news{grid-template-columns:minmax(0,1fr)}}
