@@ -448,11 +448,72 @@ def poll_portwatch():
     }
 
 
+# ------------------------------------------------------------ race events (overtakes etc.)
+_RACE_FILE = DATA / "pw_ranks.json"
+_RACE_STAGES = [l for _, l, _ in MILESTONES]
+
+
+def _race_load() -> dict | None:
+    try:
+        return json.loads(_RACE_FILE.read_text())
+    except Exception:
+        return None
+
+
+def _race_detect(pw: dict) -> None:
+    """Compare the new PortWatch ranking with the last one; record overtakes, new teams,
+    stage-ups and new 'Exclusive' stories in STATE['race_events'] (persisted, newest first)."""
+    now = datetime.now(timezone.utc).isoformat()
+    ranked = pw.get("ranked") or []
+    cur = {r["name"]: {"rank": r["rank"], "stage": r["stage"], "score": r["score"]} for r in ranked}
+    titles = [n.get("title", "") for n in pw.get("news") or []]
+    prev = _race_load()
+    if prev is None:   # first run: seed the baseline, fire nothing
+        state = {"ranks": cur, "news_seen": titles, "events": []}
+        _RACE_FILE.write_text(json.dumps(state))
+        STATE["race_events"] = []
+        return
+    old, events = prev.get("ranks", {}), []
+    holder = {v["rank"]: k for k, v in old.items()}
+    for name, c in cur.items():
+        o = old.get(name)
+        base = {"name": name, "stage": c["stage"], "score": c["score"], "at": now, "to_rank": c["rank"]}
+        if o is None:
+            events.append({**base, "kind": "new_entry", "from_rank": None,
+                           "text": f"{name} enters the race at #{c['rank']} with {c['score']}/100 ({c['stage']})"})
+            continue
+        if c["rank"] < o["rank"]:
+            passed = holder.get(c["rank"])
+            # only a real overtake if the team we passed is still ranked and now below us
+            if passed and passed != name and passed in cur and cur[passed]["rank"] > c["rank"]:
+                events.append({**base, "kind": "overtake", "from_rank": o["rank"],
+                               "text": f"{name} overtakes {passed} for #{c['rank']} ({c['score']}/100)"})
+        si = _RACE_STAGES.index(c["stage"]) if c["stage"] in _RACE_STAGES else -1
+        so = _RACE_STAGES.index(o["stage"]) if o["stage"] in _RACE_STAGES else -1
+        if si > so >= 0:
+            events.append({**base, "kind": "stage_up", "from_rank": o["rank"],
+                           "text": f"{name} reaches {c['stage']}: now {c['score']}/100 at #{c['rank']}"})
+    seen = set(prev.get("news_seen", []))
+    for t in titles:
+        if t and t not in seen and t.lower().startswith("exclusive"):
+            events.append({"kind": "exclusive", "name": "PortWatch", "from_rank": None, "to_rank": None,
+                           "stage": "", "score": None, "at": now, "text": t[:200]})
+    all_events = (events + prev.get("events", []))[:10]
+    _RACE_FILE.write_text(json.dumps({"ranks": cur, "news_seen": list(seen | set(titles))[-200:], "events": all_events}))
+    STATE["race_events"] = all_events
+    for e in events:
+        print("race event:", e["kind"], e["text"], flush=True)
+
+
 def portwatch_loop():
     while True:
         try:
             STATE["portwatch"] = poll_portwatch()
             STATE["portwatch_error"] = None
+            try:
+                _race_detect(STATE["portwatch"])
+            except Exception as e:
+                print("race detect error:", e, flush=True)
             pw_exe = STATE["portwatch"]["exe"]
             if pw_exe.get("status") == "released" and pw_exe.get("releasedAt"):
                 COUNTER["start"] = pw_exe["releasedAt"]   # keep our counter in sync with their timer

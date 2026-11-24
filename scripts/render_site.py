@@ -1,0 +1,122 @@
+#!/usr/bin/env python3
+"""Server-side render for SEO: fills site/index.template.html with the live data so crawlers and
+link previews see real content, and writes sitemap.xml + robots.txt. Called by build_site_data.py."""
+import html
+import json
+import os
+import re
+from datetime import datetime
+from pathlib import Path
+
+SITE = Path(__file__).resolve().parent.parent / "site"
+SITE_URL = os.environ.get("SITE_URL", "https://hammadxcm.github.io/gta6-pc-tracker/").rstrip("/") + "/"
+STAGES = ["Groundwork", "Exe runs", "First frame", "Main menu", "In-game", "30 FPS", "Stable"]
+e = lambda s: html.escape(str(s if s is not None else ""), quote=True)
+
+
+def _ini(name):
+    return re.sub(r"[^A-Za-z0-9]", "", name or "?")[:2].upper()
+
+
+def _avatar(r):
+    if r.get("avatar"):
+        src = re.sub(r"size=\d+", "size=160", r["avatar"])
+        return f'<img class="av" src="{e(src)}" alt="{e(r["name"])} avatar" width="48" height="48" loading="lazy" decoding="async">'
+    return f'<span class="av ini" role="img" aria-label="{e(r["name"])}">{e(_ini(r["name"]))}</span>'
+
+
+def board_html(pw):
+    ours = set(pw.get("ours") or [])
+    out = []
+    for r in pw["ranked"]:
+        si = STAGES.index(r["stage"]) if r["stage"] in STAGES else 0
+        tags = ('<em class="tag priv">PRIVATE</em>' if r.get("private") else "") + \
+               ('<em class="tag ours">ON STREAM</em>' if r.get("repo") in ours else "")
+        meta = f'{e(r["target"])}' + (f' · ⭐ {r["stars"]:,}' if r.get("stars") else "")
+        lis = lambda xs: "".join(f"<li>{e(x)}</li>" for x in xs or [])
+        link = (f'<a href="https://github.com/{e(r["repo"])}" target="_blank" rel="noopener">github.com/{e(r["repo"])} ↗</a>'
+                if r.get("repo") else f'<span>{e(r.get("byline") or "No public code")}</span>')
+        out.append(f'''<details class="eff card {'top' if r['rank'] <= 3 else ''}"><summary><span class="rk">{r['rank']}</span>{_avatar(r)}
+<div style="min-width:0"><h3 class="eff-n">{e(r['name'])}{tags}</h3><span class="meta">{meta}</span></div>
+<span class="stage s{si}">{e(r['stage'])}</span><span class="sc">{r['score']}</span><span class="chev">›</span>
+<div class="bar"><i style="width:{r['score']}%"></i></div></summary>
+<div class="body">{f'<p class="sum">{e(r["summary"])}</p>' if r.get('summary') else ''}<div class="facts"><span>Verification: {e(r.get('verification') or 'unknown')}</span>{link}</div>
+{f'<div class="ok"><h4>What works</h4><ul>{lis(r.get("highlights"))}</ul></div>' if r.get('highlights') else ''}
+{f'<div class="no"><h4>Blockers</h4><ul>{lis(r.get("blockers"))}</ul></div>' if r.get('blockers') else ''}</div></details>''')
+    return "\n".join(out)
+
+
+def faqs(data):
+    pw, L = data["portwatch"], data["portwatch"]["leader"]
+    reached = pw.get("furthest", "Groundwork")
+    playable = reached in ("30 FPS", "Stable")
+    day = datetime.fromisoformat(data["built_at"]).strftime("%-d %B %Y")
+    repos = {r["label"]: r for r in data["repos"]}
+    q = [
+        ("Does GTA 6 run on PC yet?",
+         (f"Yes, in stable form: the furthest stage reached is {reached}." if playable else
+          f"Not playably. As of {day}, the furthest stage any team has reached is “{reached}”, led by {L['name']} "
+          f"at {L['score']:g}/100{' at around ' + str(L['fps']) + ' fps' if L.get('fps') else ''}. Progress is self-reported by each team, "
+          f"and no project has reported stable 30 fps gameplay yet.")),
+        ("What are XCL and VIctory?",
+         " ".join(f"{k} ({r['slug']}): {r.get('description') or ''}" for k, r in repos.items())
+         + " Both are open source on GitHub, and this tracker follows their stars, pull requests and commits live."),
+        ("How is the progress score calculated?",
+         "Each effort is scored 0–100 on one ladder: Groundwork (0–25), Exe runs (25), First frame (40), Main menu (55), "
+         "In-game (70), 30 FPS (85) and Stable (100). Scores and stages come from PortWatch VI."),
+        ("How often is this tracker updated?",
+         "Every 15 minutes. GitHub stats come from the GitHub API, race scores and news from PortWatch VI, and press coverage from Google News."),
+        ("Is this an official Rockstar or Take-Two site?",
+         "No. Porting Race is an unofficial fan tracker. It isn't affiliated with Rockstar Games, Take-Two, PortWatch or any listed project, and it hosts no game files."),
+    ]
+    return q
+
+
+def faq_html(q):
+    return "\n".join(f'<details class="qa card"><summary><h3>{e(a)}</h3></summary><p>{e(b)}</p></details>' for a, b in q)
+
+
+def json_ld(data, q):
+    pw = data["portwatch"]
+    graph = [
+        {"@type": "WebSite", "@id": SITE_URL + "#site", "name": "Porting Race", "url": SITE_URL,
+         "description": "Live tracker of the community efforts to run GTA VI on PC."},
+        {"@type": "WebPage", "@id": SITE_URL + "#page", "url": SITE_URL, "name": "GTA 6 PC Port Tracker: Does GTA VI Run on PC Yet?",
+         "isPartOf": {"@id": SITE_URL + "#site"}, "dateModified": data["built_at"], "inLanguage": "en",
+         "primaryImageOfPage": SITE_URL + "og.png", "about": {"@type": "VideoGame", "name": "Grand Theft Auto VI"}},
+        {"@type": "ItemList", "name": "GTA VI on PC efforts by progress score", "numberOfItems": len(pw["ranked"]),
+         "itemListOrder": "https://schema.org/ItemListOrderDescending",
+         "itemListElement": [{"@type": "ListItem", "position": r["rank"],
+                              "name": f'{r["name"]}: {r["score"]}/100 ({r["stage"]})',
+                              **({"url": f'https://github.com/{r["repo"]}'} if r.get("repo") else {})} for r in pw["ranked"]]},
+        {"@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": a,
+                                            "acceptedAnswer": {"@type": "Answer", "text": b}} for a, b in q]},
+    ]
+    return json.dumps({"@context": "https://schema.org", "@graph": graph}, ensure_ascii=False).replace("</", "<\\/")
+
+
+def fill(tpl, slot, value):
+    return re.sub(rf"<!--SSR:{slot}-->.*?<!--/SSR-->", lambda _: f"<!--SSR:{slot}-->{value}<!--/SSR-->", tpl, flags=re.S)
+
+
+def render(data):
+    pw, L = data["portwatch"], data["portwatch"]["leader"]
+    tpl = (SITE / "index.template.html").read_text()
+    built = datetime.fromisoformat(data["built_at"])
+    q = faqs(data)
+    og_desc = (f"{L['name']} leads at {L['score']}/100 ({L['stage']}). Live scores, GitHub stats and news for XCL, VIctory "
+               f"and every team racing to run GTA VI on PC.") if L else "Live tracker of every effort to run GTA VI on PC."
+    out = (tpl.replace("__SITE_URL__", SITE_URL).replace("__OG_DESC__", e(og_desc)).replace("__JSON_LD__", json_ld(data, q)))
+    out = fill(out, "score", e(L["score"]) if L else "–")
+    out = fill(out, "lead", f'Leader <b>{e(L["name"])}</b> · {e(L["stage"])} · top-3 average <b>{pw["top3"]}</b> · <b>{pw["watched"]}</b> efforts watched' if L else "")
+    out = fill(out, "board", board_html(pw))
+    out = fill(out, "faq", faq_html(q))
+    out = fill(out, "upd", f"updated {built.strftime('%H:%M UTC')}")
+    out = fill(out, "built", built.strftime("%a, %d %b %Y %H:%M UTC"))
+    (SITE / "index.html").write_text(out)
+    (SITE / "sitemap.xml").write_text(
+        f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        f'  <url><loc>{SITE_URL}</loc><lastmod>{built.strftime("%Y-%m-%dT%H:%M:%S+00:00")}</lastmod>'
+        f'<changefreq>hourly</changefreq><priority>1.0</priority></url>\n</urlset>\n')
+    (SITE / "robots.txt").write_text(f"User-agent: *\nAllow: /\n\nSitemap: {SITE_URL}sitemap.xml\n")
+    return len(out)

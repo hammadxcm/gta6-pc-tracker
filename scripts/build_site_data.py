@@ -11,6 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "scripts"))
 import server  # noqa: E402
 
 KEEP = ("slug", "label", "tagline", "accent", "description", "url", "created_at", "pushed_at", "stars", "forks",
@@ -38,6 +39,9 @@ def main(out_path: str):
             "watch": watch, "counter": counter}
     Path(out_path).parent.mkdir(parents=True, exist_ok=True)
     Path(out_path).write_text(json.dumps(data, separators=(",", ":")))
+    import render_site
+    n = render_site.render(data)
+    print(f"rendered site/index.html ({n} bytes), sitemap.xml, robots.txt")
     print(f"wrote {out_path}: {len(repos)} repos, {len(pw.get('ranked', []))} ranked, "
           f"{len((watch or {}).get('items', []))} watch items")
 

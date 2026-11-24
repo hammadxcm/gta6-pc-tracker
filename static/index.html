@@ -280,6 +280,42 @@ header{position:absolute;left:88px;top:52px;right:60px;display:flex;align-items:
 .ch-cols p::before{position:absolute;left:0;top:0;font-weight:900}
 .ch-cols p.ok::before{content:"✓";color:#6ef0a0}.ch-cols p.no::before{content:"✕";color:#ff7a8a}
 
+/* headline never runs under the counter */
+.headline{max-width:1200px;overflow:hidden;text-overflow:ellipsis}
+/* scene title chip */
+.scene-chip{position:absolute;left:88px;top:219px;z-index:3;display:flex;align-items:center;gap:8px;height:22px;padding:0 10px 0 8px;border-radius:6px;
+  background:rgba(14,9,26,.72);border:1px solid var(--line);font-size:12px;font-weight:800;letter-spacing:.16em;color:var(--soft)}
+.scene-chip i{width:6px;height:6px;border-radius:50%;background:var(--pink);box-shadow:0 0 8px var(--pink)}
+.scene-chip.go{animation:chipin .6s cubic-bezier(.2,.8,.2,1)}
+@keyframes chipin{from{opacity:0;transform:translateX(-24px);clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+/* race moves (port race scene) */
+#race{position:absolute}
+.race-moves{position:absolute;right:0;top:8px;width:340px;display:flex;flex-direction:column;gap:5px;padding:10px 14px;border-radius:14px;background:rgba(14,9,26,.78);border:1px solid var(--line)}
+.race-moves h6{font-size:11px;letter-spacing:.14em;color:var(--dim);font-weight:800}
+.race-moves p{font-size:13.5px;font-weight:700;line-height:1.35;display:flex;gap:8px;align-items:center;white-space:nowrap;min-width:0}
+.race-moves p span{overflow:hidden;text-overflow:ellipsis}
+.race-moves p em{font-style:normal;font-size:10px;font-weight:800;letter-spacing:.08em;padding:2px 6px;border-radius:4px;background:var(--hot);flex:none;margin-top:1px}
+.race-moves p em.stage_up{background:#7c4dff}.race-moves p em.new_entry{background:#36b36a}.race-moves p em.exclusive{background:#ffb86b;color:#1a0b24}
+/* full-screen race takeover */
+#takeover{position:absolute;inset:0;z-index:8;display:none;align-items:center;justify-content:center;pointer-events:none}
+#takeover.on{display:flex}
+#takeover .to-bg{position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(40,14,60,.92),rgba(10,5,20,.97));animation:tofade .5s ease both}
+@keyframes tofade{from{opacity:0}}
+#takeover .to-in{position:relative;text-align:center;max-width:1500px;padding:0 60px}
+#takeover .to-in>*{opacity:0;transform:translateY(40px);animation:toin .7s cubic-bezier(.2,.8,.2,1) forwards}
+#takeover .to-name{animation-delay:.12s}#takeover .to-move{animation-delay:.24s}#takeover .to-text{animation-delay:.36s}#takeover .to-src{animation-delay:.5s}
+@keyframes toin{to{opacity:1;transform:none}}
+.to-kind{display:inline-block;font-family:var(--disp);font-weight:900;font-size:64px;letter-spacing:.18em;padding:6px 34px;border-radius:12px;background:#ff2d55;
+  box-shadow:0 0 0 0 rgba(255,45,85,.7)}
+#takeover.on .to-kind{animation:toin .7s cubic-bezier(.2,.8,.2,1) forwards, topulse 1.4s .7s ease-out infinite}
+@keyframes topulse{0%{box-shadow:0 0 0 0 rgba(255,45,85,.7)}80%{box-shadow:0 0 0 40px rgba(255,45,85,0)}100%{box-shadow:0 0 0 0 rgba(255,45,85,0)}}
+.to-kind.stage_up{background:#7c4dff}.to-kind.new_entry{background:#36b36a}.to-kind.exclusive{background:linear-gradient(90deg,#ffb86b,#ff4f9a);color:#1a0b24}
+.to-name{font-family:var(--disp);font-weight:900;font-size:190px;line-height:.9;margin-top:26px;text-shadow:0 10px 60px rgba(0,0,0,.5)}
+.to-move{font-family:var(--disp);font-weight:800;font-size:64px;margin-top:14px;color:var(--pink)}
+.to-move b{color:#fff}
+.to-text{font-size:34px;font-weight:700;color:var(--soft);margin-top:20px;line-height:1.3}
+.to-src{font-size:15px;font-weight:800;letter-spacing:.16em;color:var(--dim);margin-top:36px}
+
 /* team watch */
 #watch{padding-top:10px;display:flex;flex-direction:column;gap:18px}
 .w-top{display:flex;align-items:center;gap:18px}
@@ -365,6 +401,14 @@ header{position:absolute;left:88px;top:52px;right:60px;display:flex;align-items:
     </div>
   </header>
   <div class="headline"><span id="hl"></span><span class="caret"></span></div>
+  <div class="scene-chip" id="schip"><i></i><span id="schiptxt">LIVE</span></div>
+  <div id="takeover"><div class="to-bg"></div><div class="to-in">
+    <div class="to-kind" id="tokind">OVERTAKE</div>
+    <div class="to-name" id="toname"></div>
+    <div class="to-move" id="tomove"></div>
+    <div class="to-text" id="totext"></div>
+    <div class="to-src">PORT RACE · LIVE DATA FROM PORTWATCH-VI.XYZ</div>
+  </div></div>
 
   <div id="scenes">
     <section class="scene on" id="spot">
@@ -479,7 +523,10 @@ function tips(){
     const f = r.progress?.fractions?.[0]; if (f) out.push(`${r.label}: ${nf(f.num)} of ${nf(f.den)} ${esc(f.label)} done (${(f.num/f.den*100).toFixed(1)}%).`);
   }
   const ch = typeof challenger === "function" && challenger(); if (ch) out.push(`<b>${esc(ch.name)}</b> is #${ch.rank} at ${ch.score}/100 with a private build based on VIctory + XCL.`);
-  const pw = PW && PW(); if (pw?.leader) out.push(`Port race leader: <b>${esc(pw.leader.name)}</b> at ${pw.leader.score}/100. Next milestone: In-game.`);
+  const pw = PW && PW();
+  if (pw?.leader) { const ms = pw.milestones || [], nx = ms.find(m => m.at > pw.leader.score);
+    out.push(`Port race leader: <b>${esc(pw.leader.name)}</b> at ${pw.leader.score}/100.${nx ? ` Next milestone: ${esc(nx.label)}.` : ""}`); }
+  (S?.race_events || []).slice(0, 2).forEach(e => out.unshift(`<b>${KIND_LBL[e.kind] || "RACE"}</b> ${esc(e.text)}`));
   return out.length ? out : ["Fetching the latest commits from GitHub…"];
 }
 let tipIdx = 0;
@@ -579,6 +626,8 @@ function headlines(){
     const f = r.progress?.fractions?.[0]; if (f) out.push(`${r.label}: ${nf(f.num)} of ${nf(f.den)} ${f.label} working`);
     out.push(`${r.label}: ${nf(r.commits_24h)}${r.commits_capped?"+":""} commits in the last 24 hours`);
   }
+  const re0 = S?.race_events?.[0];
+  if (re0 && Date.now() - Date.parse(re0.at) < 6 * 3600e3) out.splice(1, 0, `${KIND_LBL[re0.kind] || "RACE"}: ${re0.text.length > 70 ? re0.text.slice(0, 68) + "…" : re0.text}`);
   const wl = S?.watch?.items?.[0]; if (wl) out.splice(1, 0, `${S.watch.name}: ${wl.title.length > 70 ? wl.title.slice(0, 68) + "…" : wl.title}`);
   const pw = PW();
   if (pw?.leader) {
@@ -682,7 +731,7 @@ function renderRace(){
     <div class="rlist">${pw.ranked.slice(0, 8).map((r, i) => `
       <div class="rrow" style="transition-delay:${i * 70}ms"><span class="rk">${r.rank}</span>${avatarHtml(r)}
         <div class="nm"><b>${esc(r.name)}${r.private ? ' <em class="priv">PRIVATE</em>' : ""}</b><span>${esc(r.stage)} · ${esc(r.target)}</span><div class="bar"><i data-w="${r.score}"></i></div></div><span class="sc">${r.score}</span></div>`).join("")}</div>
-    <div class="credit">LIVE DATA · PORTWATCH-VI.XYZ · scores are self-reported progress, updated ${esc(ago(pw.updated))}</div>`;
+    <div class="credit">LIVE DATA · PORTWATCH-VI.XYZ · scores are self-reported progress, updated ${esc(ago(pw.updated))}</div>${raceMovesHtml()}`;
 }
 function avatarHtml(r){
   if (r.avatar) return `<img src="${esc(r.avatar)}" alt="">`;
@@ -713,6 +762,36 @@ function renderChal(){
     </div>
     <div class="credit">VIA PORTWATCH-VI.XYZ · ${c.private ? "code is private, so the result can't be independently reproduced" : "self-reported progress"}</div>`;
 }
+/* ---------- race events: overtakes, new teams, stage-ups, exclusives ---------- */
+const KIND_LBL = {overtake: "OVERTAKE", new_entry: "NEW TEAM", stage_up: "STAGE UP", exclusive: "EXCLUSIVE"};
+let raceQueue = [], raceSeen = null;
+const raceKey = e => `${e.kind}|${e.name}|${e.text}`;
+function trackRaceEvents(list){
+  list = list || [];
+  if (raceSeen === null) { raceSeen = new Set(list.map(raceKey)); return; }   // first load: baseline only
+  for (const e of [...list].reverse()) { const k = raceKey(e); if (!raceSeen.has(k)) { raceSeen.add(k); raceQueue.push(e); } }
+  raceQueue = raceQueue.slice(-3);
+}
+async function showTakeover(e){
+  const st = $("#stinger"); st.classList.remove("go"); void st.offsetWidth; st.classList.add("go");
+  await sleep(380);
+  const k = $("#tokind"); k.className = "to-kind " + (KIND_LBL[e.kind] ? e.kind : ""); k.textContent = KIND_LBL[e.kind] || "RACE UPDATE";
+  $("#toname").textContent = e.kind === "exclusive" ? "PortWatch" : e.name;
+  $("#tomove").innerHTML = e.kind === "overtake" ? `#${esc(e.from_rank)} <b>→</b> #${esc(e.to_rank)}`
+    : e.kind === "stage_up" ? `<b>${esc(e.stage)}</b> · ${esc(e.score)}/100`
+    : e.kind === "new_entry" ? `#${esc(e.to_rank)} · ${esc(e.score)}/100 · ${esc(e.stage)}` : "";
+  $("#totext").textContent = e.text || "";
+  const t = $("#takeover"); t.classList.remove("on"); void t.offsetWidth; t.classList.add("on");
+  await sleep(8000);
+  st.classList.remove("go"); void st.offsetWidth; st.classList.add("go"); await sleep(380);
+  t.classList.remove("on");
+}
+function raceMovesHtml(){
+  const ev = (S?.race_events || []).slice(0, 3);
+  if (!ev.length) return "";
+  return `<div class="race-moves"><h6>RACE MOVES</h6>${ev.map(e => `<p><em class="${KIND_LBL[e.kind] ? e.kind : ""}">${KIND_LBL[e.kind] || "UPDATE"}</em><span>${esc(e.text)}</span></p>`).join("")}</div>`;
+}
+
 /* ---------- team news watch (CGBJ) ---------- */
 function renderWatch(){
   const w = S?.watch, el = $("#watch"); if (!w?.items?.length) { el.innerHTML = ""; return; }
@@ -807,6 +886,8 @@ let sceneIdx = 0;
 function setScene(i){
   if (typeof sceneIdx !== "undefined" && i !== sceneIdx) nextSlide(true);
   sceneIdx = i; SCENES.forEach((s, k) => $("#" + s.id).classList.toggle("on", k === i));
+  const CHIP = {spot: "PR SPOTLIGHT", race: "PORT RACE", chal: "CHALLENGER", watch: `${(S?.watch?.name || "TEAM").toUpperCase()} WATCH`, h2h: "HEAD TO HEAD", news: "NEWS DESK", act: "ACTIVITY"};
+  $("#schiptxt").textContent = CHIP[SCENES[i].id] || "LIVE"; const chip = $("#schip"); chip.classList.remove("go"); void chip.offsetWidth; chip.classList.add("go");
   document.querySelectorAll("#sdots i").forEach((d, k) => { d.style.transition = "none"; d.style.width = k < i ? "100%" : "0"; });
   const cur = document.querySelectorAll("#sdots i")[i]; void cur.offsetWidth; cur.style.transition = `width ${SCENES[i].dur}ms linear`; cur.style.width = "100%";
   const allOn = () => { focusRepo(null); document.querySelectorAll("#brand span").forEach(s => s.classList.add("on")); };
@@ -817,21 +898,24 @@ function setScene(i){
   if (SCENES[i].id === "h2h") { renderH2H(); setTimeout(animateH2H, 80); focusRepo(null); document.querySelectorAll("#brand span").forEach(s => s.classList.add("on")); }
   if (SCENES[i].id === "act") { renderAct(); setTimeout(animateAct, 80); focusRepo(null); document.querySelectorAll("#brand span").forEach(s => s.classList.add("on")); }
 }
+async function waitOrRace(ms){ const end = Date.now() + ms; while (Date.now() < end && !raceQueue.length) await sleep(200); }
 async function director(){
   while (!R.length) await sleep(300);
   while (true) {
     setScene(0);
     const end = Date.now() + SCENES[0].dur;
     while (Date.now() < end) {
-      if (breakingQueue.length) { await showSpot(breakingQueue.shift(), true); await sleep(7000); continue; }
+      if (raceQueue.length) { await showTakeover(raceQueue.shift()); continue; }
+      if (breakingQueue.length) { await showSpot(breakingQueue.shift(), true); await waitOrRace(7000); continue; }
       queue = buildQueue(); if (!queue.length) { await sleep(1000); continue; }
-      await showSpot(queue[spIdx++ % queue.length], false); await sleep(7000);
+      await showSpot(queue[spIdx++ % queue.length], false); await waitOrRace(7000);
     }
     for (let k = 1; k < SCENES.length; k++) {
       if (SCENES[k].id === "chal" && !challenger()) continue;
       if (SCENES[k].id === "watch" && !(S?.watch?.items?.length)) continue;
       setScene(k); const t = Date.now() + SCENES[k].dur;
-      while (Date.now() < t) { if (breakingQueue.length) break; await sleep(250); }
+      while (Date.now() < t) { if (breakingQueue.length || raceQueue.length) break; await sleep(250); }
+      if (raceQueue.length) { while (raceQueue.length) await showTakeover(raceQueue.shift()); setScene(k); }
       if (breakingQueue.length) break;
     }
   }
@@ -847,7 +931,7 @@ async function tick(){
     if (!repos.length) return;
     serverSkew = Date.parse(s.server_time) - Date.now();
     if (s.build) { if (window.BUILD && s.build !== window.BUILD) { location.reload(); return; } window.BUILD = s.build; }
-    setSlides(s.slides); MUSIC = s.music;
+    setSlides(s.slides); MUSIC = s.music; trackRaceEvents(s.race_events);
     if (s.counter) { COUNTER_START = Date.parse(s.counter.start); $("#cblabel").textContent = s.counter.label; $("#cbnote").textContent = "since " + s.counter.note; }
     nextPollAt = s.next_poll_at ? Date.parse(s.next_poll_at) : null; pollEvery = s.poll_seconds || 30;
     const changed = !S || s.updated_at !== S.updated_at; S = s; R = repos;

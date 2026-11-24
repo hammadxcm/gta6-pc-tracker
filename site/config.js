@@ -1,8 +1,10 @@
 // Site settings. Edit and push; the site picks them up on the next deploy.
 window.SITE_CONFIG = {
-  // Your YouTube channel ID (starts with "UC…", from YouTube Studio > Settings > Channel > Advanced).
-  // When set, the Live section embeds your current live stream. Leave empty to hide the player.
+  // Current live broadcast (the part after "watch?v=" in the YouTube link). Takes priority over the channel.
+  youtubeVideoId: "8CrRwSME_aM",
+  // Optional: channel ID ("UC…", YouTube Studio > Settings > Channel > Advanced). Used when no video ID is set,
+  // and always shows whatever the channel is streaming right now.
   youtubeChannelId: "",
-  // Optional: your channel URL for the "Watch on YouTube" button (e.g. "https://www.youtube.com/@yourhandle").
+  // Optional: channel page for buttons when no video ID is set (e.g. "https://www.youtube.com/@yourhandle").
   youtubeChannelUrl: "",
 };

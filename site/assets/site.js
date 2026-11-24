@@ -10,9 +10,10 @@ function ago(iso){
   if (s < 60) return "just now"; if (s < 3600) return Math.round(s / 60) + " min ago";
   if (s < 86400) return Math.floor(s / 3600) + " h ago"; return Math.floor(s / 86400) + " d ago";
 }
+const initials = r => (r.name || "?").replace(/[^A-Za-z0-9]/g, "").slice(0, 2).toUpperCase();
 const avatar = (r, cls = "av") => r.avatar
-  ? `<img class="${cls}" src="${esc(r.avatar)}" alt="" loading="lazy">`
-  : `<span class="${cls} ini">${esc((r.name || "?").replace(/[^A-Za-z0-9]/g, "").slice(0, 2).toUpperCase())}</span>`;
+  ? `<img class="${cls}" src="${esc(r.avatar.replace(/size=\d+/, "size=160"))}" alt="${esc(r.name)} avatar" width="48" height="48" loading="lazy" decoding="async" data-ini="${esc(initials(r))}" onerror="this.outerHTML='<span class=&quot;${cls} ini&quot;>'+this.dataset.ini+'</span>'">`
+  : `<span class="${cls} ini" role="img" aria-label="${esc(r.name)}">${esc(initials(r))}</span>`;
 
 let D = null;
 
@@ -38,15 +39,34 @@ const STAGES = ["Groundwork", "Exe runs", "First frame", "Main menu", "In-game",
 let FLT = "all", SRT = "score";
 function renderRace(){
   const pw = D.portwatch, L = pw.leader, ms = pw.milestones || [];
-  $("#ladder").innerHTML = `<div class="rail"><div class="fill" data-w="${L ? L.score : 0}"></div>
-    ${ms.map((m, i) => `<div class="tick ${L && L.score >= m.at ? "hit" : ""} ${i === 0 ? "first" : i === ms.length - 1 ? "last" : ""}" style="left:${m.at}%"><span>${esc(m.label)}</span></div>`).join("")}</div>
-    ${pw.ranked.slice(0, 6).reverse().map(r => `<div class="mk ${r.rank === 1 ? "lead" : ""}" style="left:0%" data-l="${r.score}" title="${esc(r.name)} · ${r.score}">${avatar(r)}</div>`).join("")}`;
+  $("#ladder").innerHTML = `<div class="marks" id="marks"><svg class="leaders" aria-hidden="true"></svg>${pw.ranked.slice(0, 6).map(r => `<div class="mk ${r.rank === 1 ? "lead" : ""}" data-l="${r.score}" title="${esc(r.name)} · ${r.score}"><span class="mk-r">${r.rank}</span>${avatar(r)}<span class="mk-n">${esc(r.name.length > 12 ? r.name.slice(0, 11) + "…" : r.name)}</span></div>`).join("")}</div>
+    <div class="rail"><div class="fill" data-w="${L ? L.score : 0}"></div>
+    ${ms.map((m, i) => `<div class="tick ${L && L.score >= m.at ? "hit" : ""} ${i === 0 ? "first" : i === ms.length - 1 ? "last" : ""}" style="left:${m.at}%"><span><b class="full">${esc(m.label)}</b><b class="num">${m.at}</b></span></div>`).join("")}</div>`;
+  layoutMarks();
   const reached = STAGES.indexOf(pw.furthest);
   $("#steps").innerHTML = ms.map((m, i) => `<div class="step ${i <= reached ? "hit" : ""}"><small>${m.at}</small><b>${esc(m.label)}</b><p>${esc((pw.milestone_desc || {})[m.label] || "")}</p></div>`).join("");
   const n = pw.nuked || [];
   $("#nuked").textContent = n.length ? `Taken offline and no longer ranked: ${n.map(x => x.name).join(", ")}.` : "";
   renderBoard();
 }
+/* ladder avatars: one row, pushed apart so none overlap, each joined to its exact score by a curved line */
+function layoutMarks(){
+  const box = $("#marks"); if (!box) return;
+  const named = [...box.querySelectorAll(".mk-n")].some(n => getComputedStyle(n).display !== "none");
+  const W = box.clientWidth, GAP = named ? 92 : 46, H = box.clientHeight, EDGE = GAP / 2;
+  const items = [...box.querySelectorAll(".mk")].map(m => ({m, x: W * m.dataset.l / 100})).sort((a, b) => a.x - b.x);
+  items.forEach((it, i) => it.a = Math.max(EDGE, i ? Math.max(it.x, items[i - 1].a + GAP) : it.x));
+  const over = items.length ? items[items.length - 1].a - (W - EDGE) : 0;
+  if (over > 0) for (let i = items.length - 1; i >= 0; i--) it_shift(i);
+  function it_shift(i){ const lim = i === items.length - 1 ? W - EDGE : items[i + 1].a - GAP; items[i].a = Math.min(items[i].a, lim); }
+  box.querySelector(".leaders").innerHTML = items.map(it => {
+    const y0 = it.m.offsetHeight + 2, y1 = H;
+    return `<path d="M${it.a} ${y0} C ${it.a} ${y0 + (y1 - y0) * .55}, ${it.x} ${y0 + (y1 - y0) * .45}, ${it.x} ${y1}" class="${it.m.classList.contains("lead") ? "hot" : ""}"/><circle cx="${it.x}" cy="${y1 - 1}" r="3" class="${it.m.classList.contains("lead") ? "hot" : ""}"/>`;
+  }).join("");
+  items.forEach(it => it.m.style.left = it.a + "px");
+}
+addEventListener("resize", () => { clearTimeout(layoutMarks.t); layoutMarks.t = setTimeout(layoutMarks, 120); });
+
 function renderBoard(){
   const pw = D.portwatch, ours = new Set(pw.ours || []);
   let list = pw.ranked.filter(r => FLT === "all" || (FLT === "gta" ? /gta/i.test(r.target) : !/gta/i.test(r.target)));
@@ -58,8 +78,8 @@ function renderBoard(){
     const si = STAGES.indexOf(r.stage), repoUrl = r.repo ? `https://github.com/${r.repo}` : null;
     return `<details class="eff card reveal ${r.rank <= 3 ? "top" : ""}">
       <summary><span class="rk">${r.rank}</span>${avatar(r)}
-        <div style="min-width:0"><b>${esc(r.name)}${r.private ? '<em class="tag priv">PRIVATE</em>' : ""}${ours.has(r.repo) ? '<em class="tag ours">ON STREAM</em>' : ""}</b>
-          <span class="meta">${esc(r.approach)} · ${esc(r.target)}${r.stars ? ` · ⭐ ${nf(r.stars)}` : ""}${r.pushed_at ? ` · pushed ${ago(r.pushed_at)}` : ""}</span></div>
+        <div style="min-width:0"><h3 class="eff-n">${esc(r.name)}${r.private ? '<em class="tag priv">PRIVATE</em>' : ""}${ours.has(r.repo) ? '<em class="tag ours">ON STREAM</em>' : ""}</h3>
+          <span class="meta"><span class="m-ap">${esc(r.approach)} · </span>${esc(r.target)}${r.stars ? ` · ⭐ ${nf(r.stars)}` : ""}<span class="m-push">${r.pushed_at ? ` · pushed ${ago(r.pushed_at)}` : ""}</span></span></div>
         <span class="stage s${si}">${esc(r.stage)}</span><span class="sc">${r.score}</span><span class="chev">›</span>
         <div class="bar"><i data-w="${r.score}"></i></div></summary>
       <div class="body">
@@ -73,8 +93,8 @@ function renderBoard(){
 }
 document.addEventListener("click", e => {
   const f = e.target.closest("#flt button"), s2 = e.target.closest("#srt button");
-  if (f) { FLT = f.dataset.f; document.querySelectorAll("#flt button").forEach(b => b.classList.toggle("on", b === f)); renderBoard(); }
-  if (s2) { SRT = s2.dataset.s; document.querySelectorAll("#srt button").forEach(b => b.classList.toggle("on", b === s2)); renderBoard(); }
+  if (f) { FLT = f.dataset.f; document.querySelectorAll("#flt button").forEach(b => { b.classList.toggle("on", b === f); b.setAttribute("aria-pressed", b === f); }); renderBoard(); }
+  if (s2) { SRT = s2.dataset.s; document.querySelectorAll("#srt button").forEach(b => { b.classList.toggle("on", b === s2); b.setAttribute("aria-pressed", b === s2); }); renderBoard(); }
 });
 
 function renderTrend(){
@@ -98,7 +118,7 @@ function renderTimeline(){
   const all = D.portwatch.changes || [], ic = {new: "+", up: "↑", down: "↓"};
   const scout = all.filter(c => /^Scout spotted/i.test(c.text)), ch = all.filter(c => !/^Scout spotted/i.test(c.text));
   if (scout.length) ch.push({date: scout[0].date, kind: "other", text: `+${scout.length} new repos spotted by PortWatch's scout and queued for review (${scout.slice(0, 4).map(c => (c.text.match(/spotted (\S+)/) || [])[1]).filter(Boolean).join(", ")}${scout.length > 4 ? ", …" : ""}).`});
-  $("#timeline").innerHTML = ch.map(c => `<li><time>${esc(c.date)}</time><span class="ic ${ic[c.kind] ? esc(c.kind) : "other"}">${ic[c.kind] || "•"}</span><p>${esc(c.text)}</p></li>`).join("") || "<li><p>No changes yet.</p></li>";
+  $("#timeline").innerHTML = ch.map(c => `<li><span class="when"><span class="ic ${ic[c.kind] ? esc(c.kind) : "other"}">${ic[c.kind] || "•"}</span><time>${esc(c.date)}</time></span><p>${esc(c.text)}</p></li>`).join("") || "<li><p>No changes yet.</p></li>";
 }
 
 function renderChallenger(){
@@ -152,13 +172,16 @@ function renderNews(){
 }
 
 function renderLive(){
-  const id = (CFG.youtubeChannelId || "").trim(), url = (CFG.youtubeChannelUrl || "").trim();
-  if (/^UC[\w-]{20,}$/.test(id)) {
-    $("#livebox").innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/live_stream?channel=${encodeURIComponent(id)}&autoplay=0" title="Porting Race live stream" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe>`;
-  } else {
-    $("#livebox").innerHTML = `<div class="ph"><b>Live on YouTube</b>${url ? `<a class="btn hot" href="${esc(url)}" target="_blank" rel="noopener"><i></i>Open the stream</a>` : "The player appears here once the channel is configured."}</div>`;
-  }
-  if (url) { $("#live-btn").href = url; $("#live-btn").target = "_blank"; }
+  const vid = (CFG.youtubeVideoId || "").trim(), id = (CFG.youtubeChannelId || "").trim();
+  const watch = vid ? `https://www.youtube.com/watch?v=${encodeURIComponent(vid)}` : (CFG.youtubeChannelUrl || "").trim();
+  let src = "";
+  if (/^[\w-]{11}$/.test(vid)) src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(vid)}?rel=0`;
+  else if (/^UC[\w-]{20,}$/.test(id)) src = `https://www.youtube-nocookie.com/embed/live_stream?channel=${encodeURIComponent(id)}`;
+  $("#livebox").innerHTML = src
+    ? `<iframe src="${src}" title="Porting Race live stream" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+       <div class="live-bar"><span><i class="dot"></i>Live 24/7 · same dashboard as this site, plus music and spotlights</span>${watch ? `<a class="btn hot" href="${esc(watch)}" target="_blank" rel="noopener"><i></i>Watch on YouTube</a>` : ""}</div>`
+    : `<div class="ph"><b>Live on YouTube</b>${watch ? `<a class="btn hot" href="${esc(watch)}" target="_blank" rel="noopener"><i></i>Open the stream</a>` : "The player appears here once the channel is configured."}</div>`;
+  if (watch) for (const a of document.querySelectorAll("#live-btn, .nav-live")) { a.href = watch; a.target = "_blank"; a.rel = "noopener"; }
 }
 
 function animate(){
@@ -166,7 +189,7 @@ function animate(){
     if (!e.isIntersecting) return; const el = e.target; el.classList.add("in");
     el.querySelectorAll("[data-w]").forEach(i => i.style.width = i.dataset.w + "%");
     el.querySelectorAll(".ring .p").forEach(c => c.style.strokeDashoffset = 289 * (1 - c.dataset.c));
-    el.querySelectorAll(".mk[data-l]").forEach(m => m.style.left = m.dataset.l + "%");
+    if (el.id === "ladder") layoutMarks();
     io.unobserve(el);
   }), {threshold: .15});
   document.querySelectorAll(".reveal, .ladder").forEach(el => io.observe(el));
@@ -181,6 +204,10 @@ async function load(){
   $("#built").textContent = new Date(D.built_at).toUTCString();
 }
 setInterval(() => { if (D) $("#upd").textContent = `updated ${ago(D.built_at)}`; }, 1000);
-addEventListener("scroll", () => $("#nav").classList.toggle("scrolled", scrollY > 8), {passive: true});
+addEventListener("scroll", () => {
+  $("#nav").classList.toggle("scrolled", scrollY > 8);
+  let cur = ""; for (const sec of document.querySelectorAll("section[id], header[id]")) if (sec.getBoundingClientRect().top < 140) cur = sec.id;
+  document.querySelectorAll(".links a").forEach(a => a.classList.toggle("on", a.getAttribute("href") === "#" + cur));
+}, {passive: true});
 load();
 setInterval(load, 5 * 60 * 1000);   // pick up the next Actions build without a reload
