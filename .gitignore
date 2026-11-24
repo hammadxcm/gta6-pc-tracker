@@ -1,0 +1,13 @@
+# runtime state, logs, local preview
+data/
+site/data/live.json
+__pycache__/
+.venv/
+# Rockstar artwork stays local (not redistributed in the public repo)
+static/slides/*
+!static/slides/.gitkeep
+# large audio mix (credits in music/CREDITS.md)
+music/*.m4a
+# never commit secrets
+*.key
+.env

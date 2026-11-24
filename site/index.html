@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Porting Race · GTA VI on PC, live</title>
+<meta name="description" content="Live tracker of the community efforts to run GTA VI on PC: XCL, VIctory and the rest of the race. Real-time GitHub stats, progress and news.">
+<meta property="og:title" content="Porting Race · GTA VI on PC, live">
+<meta property="og:description" content="Live GitHub stats, progress ladder and news for XCL, VIctory and every team racing to run GTA VI on PC.">
+<meta name="theme-color" content="#120a22">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%237c4dff'/%3E%3Cstop offset='1' stop-color='%23ff4f9a'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Cpath d='M9 22V10h7a4 4 0 0 1 0 8h-7' fill='none' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<div class="bg" aria-hidden="true"><div class="sun"></div><div class="grid"></div></div>
+
+<nav class="nav" id="nav">
+  <a class="logo" href="#top"><span class="lmk">P</span>PORTING RACE</a>
+  <div class="links"><a href="#race">Tracker</a><a href="#trend">Progress</a><a href="#projects">Projects</a><a href="#changes">Changes</a><a href="#news">News</a><a href="#live">Live</a></div>
+  <span class="upd" id="upd">loading…</span>
+</nav>
+
+<header class="hero" id="top">
+  <div class="hero-l">
+    <p class="kicker">Live tracker · updated every 15 minutes</p>
+    <h1>How close is <span class="grad">GTA VI on PC?</span></h1>
+    <div class="score"><b id="lead-score">–</b><small>/100</small></div>
+    <p class="lead-line" id="lead-line">&nbsp;</p>
+    <div class="cta"><a class="btn hot" href="#race">Open the tracker</a><a class="btn" href="#live" id="live-btn"><i class="dot"></i>Watch live</a></div>
+  </div>
+  <aside class="clock">
+    <p class="clk-lbl" id="clk-lbl">Since the executable dropped</p>
+    <div class="clk" id="clk"></div>
+    <p class="clk-note" id="clk-note"></p>
+  </aside>
+</header>
+
+<section class="sec" id="race">
+  <div class="sec-h"><h2>Tracker</h2><p>Every effort to run GTA VI on PC, scored 0–100 on one ladder from groundwork to stable play. Click a team for details.</p></div>
+  <div class="ladder card" id="ladder"></div>
+  <div class="steps" id="steps"></div>
+  <div class="ctrl">
+    <div class="seg" id="flt" role="tablist"><button data-f="all" class="on">All</button><button data-f="gta">GTA VI only</button><button data-f="generic">Any Xbox game</button></div>
+    <div class="seg" id="srt"><button data-s="score" class="on">Score</button><button data-s="stars">Stars</button><button data-s="active">Recently active</button></div>
+    <span class="count" id="count"></span>
+  </div>
+  <div class="tracker" id="board"></div>
+  <p class="nuked" id="nuked"></p>
+  <p class="src">Scores and stages from <a href="https://portwatch-vi.xyz/" target="_blank" rel="noopener">PortWatch VI</a>. Progress is mostly self-reported by each team.</p>
+</section>
+
+<section class="sec" id="chal-sec" hidden>
+  <div class="chal card" id="chal"></div>
+</section>
+
+<section class="sec" id="trend">
+  <div class="sec-h"><h2>Progress over time</h2><p>The leading score and the top-3 average, day by day.</p></div>
+  <div class="trend card" id="trendbox"></div>
+</section>
+
+<section class="sec" id="projects">
+  <div class="sec-h"><h2>The open projects</h2><p>Live from GitHub: stars, pull requests, commits and each README's own status tables.</p></div>
+  <div class="projects" id="proj"></div>
+</section>
+
+<section class="sec" id="changes">
+  <div class="sec-h"><h2>What changed</h2><p>New teams, stage changes and takedowns, newest first.</p></div>
+  <ol class="timeline card" id="timeline"></ol>
+</section>
+
+<section class="sec" id="news">
+  <div class="sec-h"><h2>News</h2><p id="news-sub">From PortWatch and established outlets.</p></div>
+  <div class="news" id="newsgrid"></div>
+</section>
+
+<section class="sec" id="live">
+  <div class="sec-h"><h2>Live stream</h2><p>The same dashboard, streamed 24/7 with spotlights on every new pull request.</p></div>
+  <div class="live card" id="livebox"></div>
+</section>
+
+<footer class="foot">
+  <p><b>Porting Race</b> is an unofficial fan tracker. It isn't affiliated with Rockstar Games, Take-Two, PortWatch or any of the projects listed, and it hosts no game files.</p>
+  <p>Data: GitHub REST API · <a href="https://portwatch-vi.xyz/" target="_blank" rel="noopener">PortWatch VI</a> (race scores, news) · Google News. Built <span id="built">–</span>.</p>
+</footer>
+
+<script src="config.js"></script>
+<script src="assets/site.js"></script>
+</body>
+</html>
