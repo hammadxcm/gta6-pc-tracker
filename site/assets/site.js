@@ -164,11 +164,73 @@ function renderNews(){
   const w = D.watch, pw = D.portwatch, cards = [];
   (w?.items || []).slice(0, 3).forEach(it => cards.push({badge: `${w.name} watch`, cls: "w", src: it.source, title: it.title, text: it.dek || it.detail, at: it.at}));
   (pw.news || []).slice(0, 4).forEach(n => { if (!cards.some(c => c.title === n.title)) cards.push({badge: n.category || "News", src: "PortWatch", title: n.title, text: n.dek, at: n.date}); });
-  (pw.headlines || []).slice(0, 3).forEach(h => cards.push({badge: "Press", src: h.outlet, title: h.title, text: "", at: h.date}));
   $("#newsgrid").innerHTML = cards.slice(0, 8).map((c, i) => `
     <article class="nc card reveal ${i === 0 ? (c.text ? "lead" : "lead flat") : ""}"><div class="src2"><span class="b ${c.cls || ""}">${esc(c.badge)}</span>${esc(c.src)} · ${esc(c.at && c.at.length > 10 ? ago(c.at) : c.at)}</div>
       <h3>${esc(c.title)}</h3>${c.text && (i === 0 || i < 3) ? `<p>${esc(c.text)}</p>` : ""}</article>`).join("");
   if (w?.sources?.length) $("#news-sub").textContent = `From ${["PortWatch", ...w.sources.filter(s => s !== "PortWatch")].join(", ")}. Only items that name a team are matched.`;
+}
+
+/* ---------- status desk ---------- */
+function renderStatus(){
+  const i = D.intel; if (!i) { $("#status").hidden = true; return; }
+  if (i.safety) $("#safety").textContent = i.safety;
+  const o = i.official || {}, reps = o.reports || [];
+  $("#official").innerHTML = `<p class="st-k">Official PC version</p>
+    <h3 class="st-h ${o.pc_announced ? "yes" : "no"}"><span class="st-dot" aria-hidden="true"></span>${esc(o.headline || "No PC version announced")}</h3>
+    <p class="st-p">${esc(o.detail || "")}</p>
+    <p class="st-src">Source: ${esc(o.source || "–")}${o.as_of ? ` · as of ${esc(o.as_of)}` : ""}</p>
+    ${reps.length ? `<div class="st-rep"><span class="pill2 warn">Reported, unconfirmed</span><ul>${reps.map(r => `<li>${esc(r.title)} <span>· ${esc(r.outlet)}${r.at ? " · " + ago(r.at) : ""}</span></li>`).join("")}</ul></div>` : ""}`;
+  const t = i.takedowns || {}, ev = t.events || [], dm = t.dmca || [];
+  $("#takedowns").innerHTML = `<p class="st-k">Takedown watch</p>
+    <ul class="td">${ev.map(e => `<li class="${esc(e.kind)}"><span class="td-ic" aria-hidden="true">${e.kind === "caution" ? "!" : "✕"}</span><p>${e.text.startsWith(e.name) ? `<b>${esc(e.name)}</b> ${esc(e.text.slice(e.name.length).trim())}` : `<b>${esc(e.name)}:</b> ${esc(e.text)}`}</p></li>`).join("")}</ul>
+    <p class="st-src">${dm.length ? `GitHub DMCA notices: ${dm.map(d => esc(d.text)).join(" · ")}` : "No new GitHub DMCA notices for GTA projects."}${t.checked_at ? ` · checked ${ago(t.checked_at)}` : ""}</p>`;
+}
+
+/* ---------- radar ---------- */
+function renderRadar(){
+  const r = D.intel?.radar || [];
+  $("#radar").hidden = !r.length; if (!r.length) return;
+  $("#radargrid").innerHTML = r.map(t => {
+    const m = t.stars_per_h;
+    return `<article class="rd card reveal">
+      <div class="rd-h">${avatar({name: t.name, avatar: t.avatar})}<div style="min-width:0"><h3>${esc(t.name)}</h3><span class="meta">${esc(t.owner)}${t.lang ? " · " + esc(t.lang) : ""}</span></div></div>
+      <p class="rd-n">${esc(t.note || t.desc || "")}</p>
+      ${t.note && t.desc && t.desc !== t.note ? `<p class="rd-d">${esc(t.desc)}</p>` : ""}
+      <div class="rd-f"><span>⭐ ${nf(t.stars)}</span>${m ? `<span class="mom ${m > 0 ? "up" : ""}">${m > 0 ? "+" : ""}${m}/h</span>` : ""}<span>pushed ${ago(t.pushed_at)}</span>
+        <a href="${esc(t.url)}" target="_blank" rel="noopener nofollow">GitHub ↗</a></div></article>`;
+  }).join("");
+}
+
+/* ---------- press wall ---------- */
+function renderPress(){
+  const p = D.intel?.press || [];
+  $("#press").hidden = !p.length; if (!p.length) return;
+  const [lead, ...rest] = p;
+  $("#pressgrid").innerHTML = `<article class="pr lead card reveal"><span class="pr-o">${esc(lead.outlet)}</span><h3>${esc(lead.title)}</h3><span class="pr-a">${ago(lead.at)}</span></article>` +
+    rest.slice(0, 11).map(x => `<article class="pr card reveal"><span class="pr-o">${esc(x.outlet)}</span><h3>${esc(x.title)}</h3><span class="pr-a">${ago(x.at)}</span></article>`).join("");
+  const outlets = [...new Set(p.map(x => x.outlet).filter(Boolean))];
+  $("#press-sub").textContent = `${p.length} stories from ${outlets.length} outlets in the last 3 days, newest first.`;
+}
+
+/* ---------- star race chart ---------- */
+function renderStars(){
+  const R = D.repos.filter(r => (r.history || []).length > 1);
+  if (!R.length) { $("#starsbox").hidden = true; return; }
+  const W = 1000, H = 280, P = {l: 56, r: 20, t: 18, b: 34};
+  const all = R.flatMap(r => r.history), t0 = Math.min(...all.map(p => p[0])), t1 = Math.max(...all.map(p => p[0]));
+  const v0 = Math.min(...all.map(p => p[1])), v1 = Math.max(...all.map(p => p[1]));
+  const span = Math.max(1, v1 - v0), lo = Math.max(0, v0 - span * .06), hi = v1 + span * .06;
+  const x = t => P.l + (W - P.l - P.r) * ((t - t0) / Math.max(1, t1 - t0)), y = v => P.t + (H - P.t - P.b) * (1 - (v - lo) / (hi - lo));
+  const ticks = [0, .25, .5, .75, 1].map(f => lo + (hi - lo) * f);
+  const fmtT = t => new Date(t * 1000).toLocaleString("en-GB", {day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"});
+  const grid = ticks.map(v => `<line class="gl" x1="${P.l}" x2="${W - P.r}" y1="${y(v)}" y2="${y(v)}"/><text class="lab" x="${P.l - 8}" y="${y(v) + 4}" text-anchor="end">${v >= 1000 ? (v / 1000).toFixed(1) + "k" : Math.round(v)}</text>`).join("");
+  const xl = [t0, (t0 + t1) / 2, t1].map((t, i) => `<text class="lab" x="${x(t)}" y="${H - 8}" text-anchor="${["start", "middle", "end"][i]}">${esc(fmtT(t))}</text>`).join("");
+  const lines = R.map(r => { const h = r.history; const d = h.map((p, i) => `${i ? "L" : "M"}${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`).join("");
+    const last = h[h.length - 1]; return `<path d="${d}" fill="none" stroke="${esc(r.accent)}" stroke-width="3" stroke-linejoin="round"/><circle cx="${x(last[0])}" cy="${y(last[1])}" r="5" fill="${esc(r.accent)}" stroke="#120a22" stroke-width="2"/>`; }).join("");
+  const rate = r => { const h = r.history, now = h[h.length - 1]; let b = h[0]; for (const p of h) if (now[0] - p[0] <= 3600) { b = p; break; }
+    const hrs = (now[0] - b[0]) / 3600; return hrs >= .25 ? Math.round((now[1] - b[1]) / hrs) : null; };
+  $("#starsbox").innerHTML = `<div class="sb-h"><h3>Star race</h3><div class="sb-l">${R.map(r => { const k = rate(r); return `<span><i style="background:${esc(r.accent)}"></i>${esc(r.label)} <b>${nf(r.history[r.history.length - 1][1])}</b>${k != null ? ` <em>+${nf(k)}/h</em>` : ""}</span>`; }).join("")}</div></div>
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="GitHub stars over time for ${R.map(r => esc(r.label)).join(" and ")}">${grid}${xl}${lines}</svg>`;
 }
 
 function renderLive(){
@@ -182,6 +244,8 @@ function renderLive(){
        <div class="live-bar"><span><i class="dot"></i>Live 24/7 · same dashboard as this site, plus music and spotlights</span>${watch ? `<a class="btn hot" href="${esc(watch)}" target="_blank" rel="noopener"><i></i>Watch on YouTube</a>` : ""}</div>`
     : `<div class="ph"><b>Live on YouTube</b>${watch ? `<a class="btn hot" href="${esc(watch)}" target="_blank" rel="noopener"><i></i>Open the stream</a>` : "The player appears here once the channel is configured."}</div>`;
   if (watch) for (const a of document.querySelectorAll("#live-btn, .nav-live")) { a.href = watch; a.target = "_blank"; a.rel = "noopener"; }
+  const sub = (CFG.youtubeSubscribeUrl || "").trim();
+  if (/^https:\/\/www\.youtube\.com\//.test(sub)) for (const a of document.querySelectorAll(".yt-sub, .yt-btn")) a.href = sub;
 }
 
 function animate(){
@@ -200,7 +264,7 @@ async function load(){
     const r = await fetch(`data/live.json?t=${Math.floor(Date.now() / 6e4)}`, {cache: "no-cache"});
     D = await r.json();
   } catch (e) { $("#upd").textContent = "data unavailable"; return; }
-  renderHero(); renderRace(); renderTrend(); renderTimeline(); renderChallenger(); renderProjects(); renderNews(); renderLive(); animate(); clock();
+  renderHero(); renderRace(); renderTrend(); renderTimeline(); renderChallenger(); renderProjects(); renderNews(); renderLive(); renderStatus(); renderRadar(); renderPress(); renderStars(); animate(); clock();
   $("#built").textContent = new Date(D.built_at).toUTCString();
 }
 setInterval(() => { if (D) $("#upd").textContent = `updated ${ago(D.built_at)}`; }, 1000);

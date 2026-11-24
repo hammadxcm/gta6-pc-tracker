@@ -43,7 +43,7 @@
 
 <nav class="nav" id="nav" aria-label="Main">
   <a class="logo" href="#top"><span class="lmk">P</span>PORTING RACE</a>
-  <div class="links"><a href="#race">Tracker</a><a href="#trend">Progress</a><a href="#projects">Projects</a><a href="#changes">Changes</a><a href="#news">News</a><a href="#live">Live</a></div>
+  <div class="links"><a href="#status">Status</a><a href="#race">Tracker</a><a href="#radar">Radar</a><a href="#trend">Progress</a><a href="#projects">Projects</a><a href="#changes">Changes</a><a href="#news">News</a><a href="#press">Press</a><a href="#live">Live</a></div>
   <a class="nav-live" href="https://www.youtube.com/watch?v=8CrRwSME_aM" target="_blank" rel="noopener" aria-label="Watch the live stream on YouTube"><i class="dot"></i>LIVE</a>
   <span class="upd" id="upd"><!--SSR:upd-->loading…<!--/SSR--></span>
 </nav>
@@ -55,7 +55,7 @@
     <h1>How close is <span class="grad">GTA VI on PC?</span></h1>
     <div class="score"><b id="lead-score"><!--SSR:score-->–<!--/SSR--></b><small>/100</small></div>
     <p class="lead-line" id="lead-line"><!--SSR:lead--><!--/SSR--></p>
-    <div class="cta"><a class="btn hot" href="#race">Open the tracker</a><a class="btn live-cta" href="https://www.youtube.com/watch?v=8CrRwSME_aM" id="live-btn" target="_blank" rel="noopener"><i class="dot"></i>Watch live on YouTube</a></div>
+    <div class="cta"><a class="btn hot" href="#race">Open the tracker</a><a class="btn live-cta" href="https://www.youtube.com/watch?v=8CrRwSME_aM" id="live-btn" target="_blank" rel="noopener"><i class="dot"></i>Watch live on YouTube</a><a class="btn yt-sub" href="https://www.youtube.com/@hammadxcm?sub_confirmation=1" target="_blank" rel="noopener"><svg class="yt-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M23 7.2a3 3 0 0 0-2.1-2.1C19 4.6 12 4.6 12 4.6s-7 0-8.9.5A3 3 0 0 0 1 7.2 31 31 0 0 0 .5 12a31 31 0 0 0 .5 4.8 3 3 0 0 0 2.1 2.1c1.9.5 8.9.5 8.9.5s7 0 8.9-.5a3 3 0 0 0 2.1-2.1 31 31 0 0 0 .5-4.8 31 31 0 0 0-.5-4.8z" fill="currentColor"/><path d="M9.8 15.1 15.6 12 9.8 8.9z" fill="#ff2d55"/></svg>Subscribe</a></div>
   </div>
   <aside class="clock">
     <p class="clk-lbl" id="clk-lbl">Since the executable dropped</p>
@@ -63,6 +63,15 @@
     <p class="clk-note" id="clk-note"></p>
   </aside>
 </header>
+
+<section class="sec status-sec" id="status" aria-labelledby="status-h">
+  <h2 class="vh" id="status-h">Status desk</h2>
+  <div class="safety" role="note"><span class="sf-ic" aria-hidden="true">!</span><p id="safety"><!--SSR:safety-->No playable GTA VI PC build exists. “GTA 6 PC download” links and installers are fakes or malware.<!--/SSR--></p></div>
+  <div class="status-grid">
+    <article class="st-card card" id="official"><!--SSR:official--><!--/SSR--></article>
+    <article class="st-card card" id="takedowns"><!--SSR:takedowns--><!--/SSR--></article>
+  </div>
+</section>
 
 <section class="sec" id="race">
   <div class="sec-h"><h2>Tracker</h2><p>Every effort to run GTA VI on PC, scored 0–100 on one ladder from groundwork to stable play. Click a team for details.</p></div>
@@ -82,6 +91,11 @@
   <div class="chal card" id="chal"></div>
 </section>
 
+<section class="sec" id="radar">
+  <div class="sec-h"><h2>On the radar</h2><p>Rising teams we've reviewed that PortWatch hasn't ranked yet. Code projects only, no download links.</p></div>
+  <div class="radar" id="radargrid"><!--SSR:radar--><!--/SSR--></div>
+</section>
+
 <section class="sec" id="trend">
   <div class="sec-h"><h2>Progress over time</h2><p>The leading score and the top-3 average, day by day.</p></div>
   <div class="trend card" id="trendbox"></div>
@@ -89,6 +103,7 @@
 
 <section class="sec" id="projects">
   <div class="sec-h"><h2>The open projects</h2><p>Live from GitHub: stars, pull requests, commits and each README's own status tables.</p></div>
+  <div class="stars card" id="starsbox"></div>
   <div class="projects" id="proj"></div>
 </section>
 
@@ -98,8 +113,13 @@
 </section>
 
 <section class="sec" id="news">
-  <div class="sec-h"><h2>News</h2><p id="news-sub">From PortWatch and established outlets.</p></div>
+  <div class="sec-h"><h2>Team news</h2><p id="news-sub">Reports about the teams from PortWatch and team watch.</p></div>
   <div class="news" id="newsgrid"></div>
+</section>
+
+<section class="sec" id="press">
+  <div class="sec-h"><h2>In the press</h2><p id="press-sub">Media coverage of the race to run GTA VI on PC, newest first.</p></div>
+  <div class="press" id="pressgrid"><!--SSR:press--><!--/SSR--></div>
 </section>
 
 <section class="sec" id="faq">
@@ -109,13 +129,23 @@
 
 <section class="sec" id="live">
   <div class="sec-h"><h2>Live stream</h2><p>The same dashboard, streamed 24/7 with spotlights on every new pull request.</p></div>
-  <div class="live card" id="livebox"></div>
+  <div class="live-wrap">
+    <div class="live card" id="livebox"></div>
+    <aside class="sub-card card" aria-labelledby="sub-h">
+      <p class="st-k">HK Gaming on YouTube</p>
+      <h3 id="sub-h">Scan to subscribe</h3>
+      <div class="qr-tile"><img src="assets/subscribe-qr.svg" alt="QR code: subscribe to HK Gaming on YouTube" width="176" height="176" loading="lazy" decoding="async"></div>
+      <p class="sub-url">youtube.com/@hammadxcm</p>
+      <a class="btn yt-btn" href="https://www.youtube.com/@hammadxcm?sub_confirmation=1" target="_blank" rel="noopener">Subscribe on YouTube</a>
+      <p class="sub-note">Get notified when the stream goes live and every time a team moves up the ladder.</p>
+    </aside>
+  </div>
 </section>
 
 </main>
 <footer class="foot">
   <p><b>Porting Race</b> is an unofficial fan tracker. It isn't affiliated with Rockstar Games, Take-Two, PortWatch or any of the projects listed, and it hosts no game files.</p>
-  <p>Data: GitHub REST API · <a href="https://portwatch-vi.xyz/" target="_blank" rel="noopener">PortWatch VI</a> (race scores, news) · Google News. Built <span id="built"><!--SSR:built-->–<!--/SSR--></span>.</p>
+  <p>Data: GitHub REST API · <a href="https://portwatch-vi.xyz/" target="_blank" rel="noopener">PortWatch VI</a> (race scores, news) · Google News. Live stream and updates: <a href="https://www.youtube.com/@hammadxcm" target="_blank" rel="noopener">HK Gaming on YouTube</a>. Built <span id="built"><!--SSR:built-->–<!--/SSR--></span>.</p>
 </footer>
 
 <noscript><p class="foot">This tracker updates live with JavaScript. The leaderboard above is a snapshot from the last build.</p></noscript>

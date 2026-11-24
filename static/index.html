@@ -68,8 +68,8 @@ header{position:absolute;left:88px;top:52px;right:60px;display:flex;align-items:
 #scenes{position:absolute;left:88px;top:244px;width:1180px;height:628px;z-index:2}
 .scene{position:absolute;inset:0;opacity:0;pointer-events:none;transition:opacity .7s}
 .scene.on{opacity:1}
-.scene-dots{position:absolute;left:88px;top:892px;display:flex;gap:10px;z-index:3}
-.scene-dots div{width:46px;height:5px;border-radius:3px;background:rgba(255,255,255,.18);overflow:hidden}
+.scene-dots{position:absolute;left:88px;top:892px;display:flex;gap:6px;z-index:3}
+.scene-dots div{width:26px;height:5px;border-radius:3px;background:rgba(255,255,255,.18);overflow:hidden}
 .scene-dots div i{display:block;height:100%;width:0;background:#fff}
 
 /* spotlight */
@@ -142,16 +142,16 @@ header{position:absolute;left:88px;top:52px;right:60px;display:flex;align-items:
 .sub{font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);font-weight:800}
 
 /* ---------------- latest panel ---------------- */
-#latest{position:absolute;left:1328px;top:214px;width:568px;height:680px;z-index:3;background:rgba(14,9,26,.8);border:1px solid var(--line);border-radius:30px;padding:34px 34px 20px;backdrop-filter:blur(14px);overflow:hidden}
-#latest h4{font-family:var(--disp);font-weight:800;font-size:44px;letter-spacing:.01em;line-height:1;margin-bottom:14px;display:flex;align-items:center;gap:12px}
+#latest{position:absolute;left:1328px;top:214px;width:568px;height:480px;z-index:3;background:rgba(14,9,26,.8);border:1px solid var(--line);border-radius:30px;padding:24px 30px 14px;backdrop-filter:blur(14px);overflow:hidden}
+#latest h4{font-family:var(--disp);font-weight:800;font-size:40px;letter-spacing:.01em;line-height:1;margin-bottom:12px;display:flex;align-items:center;gap:12px}
 #latest h4 small{font-family:var(--body);font-size:14px;color:var(--dim);font-weight:700;letter-spacing:.1em;margin-left:auto}
-.ev{display:grid;grid-template-columns:116px 1fr;gap:18px;padding:12px 0;border-bottom:1px solid var(--line);position:relative;transition:background .4s}
+.ev{display:grid;grid-template-columns:116px 1fr;gap:18px;padding:9px 0;border-bottom:1px solid var(--line);position:relative;transition:background .4s}
 .ev:last-child{border-bottom:0}
 .ev .pill{font-size:15px;padding:6px 0;height:30px;margin-top:2px}
-.ev p{font-size:19px;font-weight:700;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ev p{font-size:17.5px;font-weight:700;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .ev s{text-decoration:none;display:flex;align-items:center;gap:10px;margin-top:7px;font-size:15.5px;color:var(--dim);font-weight:600}
 .badge{font-family:var(--disp);font-size:17px;font-weight:800;padding:2px 10px;border-radius:7px;color:#0d0d0d;letter-spacing:.02em}
-.ev.cur::before{content:"";position:absolute;left:-34px;top:12px;bottom:12px;width:5px;border-radius:0 4px 4px 0;background:var(--pink);box-shadow:0 0 14px var(--pink)}
+.ev.cur::before{content:"";position:absolute;left:-30px;top:12px;bottom:12px;width:5px;border-radius:0 4px 4px 0;background:var(--pink);box-shadow:0 0 14px var(--pink)}
 .ev.enter{animation:evin .8s cubic-bezier(.2,.8,.2,1) both}
 @keyframes evin{from{opacity:0;transform:translateY(-40px)}}
 .ev.fresh{background:linear-gradient(90deg,rgba(255,143,196,.16),transparent);border-radius:12px}
@@ -192,13 +192,99 @@ header{position:absolute;left:88px;top:52px;right:60px;display:flex;align-items:
 @keyframes sting{0%{left:-60%}100%{left:130%}}
 .spin{width:26px;height:26px;border-radius:50%;border:3px solid rgba(255,255,255,.2);border-top-color:#fff;border-right-color:var(--pink);animation:spin .9s linear infinite;flex:none}
 @keyframes spin{to{transform:rotate(360deg)}}
-#tips{position:absolute;left:400px;top:880px;width:880px;height:30px;z-index:3;display:flex;align-items:center;gap:14px}
+#tips{position:absolute;left:420px;top:880px;width:860px;height:30px;z-index:3;display:flex;align-items:center;gap:14px}
 #tips .spin{width:22px;height:22px}
 #tips .tl{font-family:var(--disp);font-weight:800;font-size:20px;letter-spacing:.14em;color:#fff}
 #tiptxt{font-size:17px;font-weight:600;color:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:opacity .4s,transform .4s}
 #tiptxt.swap{opacity:0;transform:translateY(8px)}
 #tiptxt b{color:var(--pink);font-weight:800;margin-right:6px}
 #slidecredit{position:absolute;right:30px;top:1059px;z-index:3;font-size:11.5px;color:rgba(255,255,255,.45);font-weight:600;max-width:160px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* ---------- race intel: radar / press / status / star race ---------- */
+.pcbadge{position:absolute;right:652px;top:219px;z-index:3;display:flex;align-items:center;gap:7px;height:22px;padding:0 10px;border-radius:6px;
+  background:rgba(14,9,26,.82);border:1px solid rgba(255,184,107,.45);font-size:11.5px;font-weight:800;letter-spacing:.1em;color:var(--soft)}
+.pcbadge i{width:6px;height:6px;border-radius:50%;background:#ffb86b;box-shadow:0 0 8px #ffb86b}
+.pcbadge b{color:#ffb86b}
+.pcbadge.yes{border-color:rgba(110,240,160,.5)}.pcbadge.yes i{background:#6ef0a0;box-shadow:0 0 8px #6ef0a0}.pcbadge.yes b{color:#6ef0a0}
+.ix-head{display:flex;align-items:baseline;gap:16px;margin-bottom:16px}
+.ix-head h5{font-family:var(--disp);font-weight:800;font-size:44px;line-height:1;letter-spacing:.01em}
+.ix-head span{font-size:15px;color:var(--dim);font-weight:700;letter-spacing:.06em}
+#radar{padding-top:12px}
+.rd-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.rd{background:var(--glass);border:1px solid var(--line);border-radius:20px;padding:18px 20px;display:flex;flex-direction:column;gap:10px;min-width:0;
+  opacity:0;transform:translateY(16px)}
+.scene.on .rd{opacity:1;transform:none;transition:all .6s cubic-bezier(.2,.8,.2,1)}
+.rd-top{display:flex;align-items:center;gap:12px;min-width:0}
+.rd-top img,.rd-top .ini{width:46px;height:46px;border-radius:50%;flex:none;background:#2a1d45;box-shadow:0 0 0 2px rgba(255,255,255,.18)}
+.rd-top .ini{display:grid;place-items:center;font-family:var(--disp);font-weight:800;font-size:19px;color:#1a0b24;background:linear-gradient(135deg,#ffb86b,#ff4f9a)}
+.rd-top div{min-width:0}
+.rd-top b{display:block;font-size:20px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rd-top s{text-decoration:none;display:block;font-size:13px;color:var(--dim);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rd p{font-size:15px;color:var(--soft);line-height:1.35;font-weight:500;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:40px}
+.rd-stats{display:flex;align-items:center;gap:14px;font-size:14px;font-weight:700;color:var(--dim);margin-top:auto}
+.rd-stats .st{font-family:var(--disp);font-size:26px;font-weight:800;color:#fff}
+.rd-stats .mo{color:#6ef0a0;font-weight:800}.rd-stats .mo.flat{color:var(--dim)}
+.rd-stats .lang{margin-left:auto;font-size:12px;padding:3px 8px;border-radius:6px;background:var(--glass2)}
+#press{padding-top:12px;display:flex;flex-direction:column;gap:14px}
+.pr-lead{background:var(--glass);border:1px solid var(--line);border-radius:26px;padding:26px 30px;backdrop-filter:blur(10px)}
+.pr-meta{display:flex;align-items:center;gap:12px;font-size:15px;color:var(--dim);font-weight:700}
+.pr-out{font-size:14px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;background:var(--hot);color:#fff;padding:4px 10px;border-radius:6px}
+.pr-lead h5{font-size:38px;font-weight:800;line-height:1.14;letter-spacing:-.02em;margin-top:12px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.pr-list{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pr-list div{background:var(--glass);border:1px solid var(--line);border-radius:16px;padding:14px 18px;opacity:0;transform:translateY(12px);min-width:0}
+.scene.on .pr-list div{opacity:1;transform:none;transition:all .6s cubic-bezier(.2,.8,.2,1)}
+.pr-list b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:17.5px;font-weight:700;line-height:1.3}
+.pr-list span{display:block;font-size:13px;color:var(--dim);font-weight:700;margin-top:6px;letter-spacing:.04em}
+.pr-list span span{display:inline;margin:0}
+#status{padding-top:12px}
+.sd-grid{display:grid;grid-template-columns:1.15fr 1fr;grid-template-rows:auto auto;gap:16px}
+.sd{background:var(--glass);border:1px solid var(--line);border-radius:22px;padding:22px 24px;backdrop-filter:blur(10px);min-width:0}
+.sd h6{font-size:13px;letter-spacing:.14em;color:var(--dim);font-weight:800;text-transform:uppercase}
+.sd-off{grid-row:span 2;display:flex;flex-direction:column;justify-content:center;gap:16px;border-color:rgba(255,184,107,.4)}
+.sd-off .big{font-family:var(--disp);font-weight:900;font-size:86px;line-height:.9;color:#ffb86b;text-shadow:0 0 40px rgba(255,184,107,.35)}
+.sd-off.yes .big{color:#6ef0a0;text-shadow:0 0 40px rgba(110,240,160,.35)}
+.sd-off p{font-size:19px;color:var(--soft);line-height:1.45;font-weight:500}
+.sd-off .src{font-size:13.5px;color:var(--dim);font-weight:700;margin-top:8px}
+.sd-off .rep{font-size:14px;font-weight:700;color:#ffc2dd;background:rgba(255,79,154,.12);border-radius:10px;padding:8px 12px}
+.sd-td p{font-size:15.5px;font-weight:600;line-height:1.35;margin-top:10px;padding-left:24px;position:relative}
+.sd-td p::before{content:"✕";position:absolute;left:0;color:#ff7a8a;font-weight:900}
+.sd-td p.caution::before{content:"!";color:#ffb86b}
+.sd-td .none{color:var(--dim)}
+.sd-td p.none::before{content:none}
+.sd-safe{border-color:rgba(255,77,94,.5);background:linear-gradient(135deg,rgba(255,45,85,.18),rgba(14,9,26,.7))}
+.sd-safe p{font-size:19px;font-weight:800;line-height:1.35;margin-top:10px}
+.sd-safe h6{color:#ff8a98}
+.to-kind.reported{background:linear-gradient(90deg,#ffb86b,#ff7a59);color:#1a0b24}.to-kind.official{background:#36b36a}
+/* head-to-head: compact cards + star race chart row */
+#h2h{grid-template-rows:auto 1fr;gap:16px;padding-top:12px}
+#h2h .card{padding:20px 26px;gap:12px}
+#h2h .card h3{font-size:46px}
+#h2h .donutrow{gap:20px}#h2h .donut{width:118px;height:118px}#h2h .donut .c b{font-size:38px}
+#h2h .dl{font-size:16px;line-height:1.45}#h2h .dl b{font-size:22px}
+#h2h .meas{gap:8px}#h2h .meas .row{font-size:15px;margin-bottom:4px}#h2h .meas .row span{font-size:14px}#h2h .meas .tk{height:8px}
+.sr{grid-column:1/-1;background:var(--glass);border:1px solid var(--line);border-radius:24px;padding:16px 24px 12px;display:grid;grid-template-columns:260px 1fr;gap:22px;align-items:center;min-height:0}
+.sr-side h6{font-size:13px;letter-spacing:.14em;color:var(--dim);font-weight:800}
+.sr-row{display:flex;align-items:baseline;gap:10px;margin-top:10px}
+.sr-row i{width:12px;height:12px;border-radius:3px;flex:none;align-self:center}
+.sr-row b{font-family:var(--disp);font-size:34px;font-weight:800;line-height:1}
+.sr-row span{font-size:14px;font-weight:700;color:var(--soft)}
+.sr-row em{font-style:normal;font-size:14px;font-weight:800;color:#6ef0a0}
+.sr svg{width:100%;height:170px;display:block;overflow:visible}
+.sr .gl{stroke:rgba(255,255,255,.08)}.sr .lb{fill:rgba(255,255,255,.5);font-size:12px;font-weight:700}
+
+/* scan-to-subscribe QR card (QR stays static, black-on-white, fully opaque) */
+.subqr{position:absolute;left:1328px;top:702px;width:568px;height:192px;z-index:4;display:flex;align-items:center;gap:22px;
+  background:rgba(14,9,26,.88);border:2px solid rgba(255,79,154,.55);border-radius:24px;padding-right:22px;overflow:hidden;
+  animation:qrpulse 2.4s ease-in-out infinite}
+@keyframes qrpulse{0%,100%{border-color:rgba(255,79,154,.45);box-shadow:0 0 0 0 rgba(255,79,154,0)}50%{border-color:#ff4f9a;box-shadow:0 0 28px 2px rgba(255,79,154,.45)}}
+.subqr img{display:block;width:188px;height:188px;flex:none;background:#fff;border-radius:22px 0 0 22px;opacity:1;image-rendering:pixelated}
+.subqr-t{display:flex;flex-direction:column;gap:6px;min-width:0}
+.subqr-t small{display:flex;align-items:center;gap:9px;font-family:var(--disp);font-weight:800;font-size:30px;letter-spacing:.08em;color:#fff;line-height:1}
+.subqr-t small i{width:12px;height:12px;border-radius:50%;background:#ff2d55;box-shadow:0 0 10px #ff2d55;animation:blink 1.6s infinite}
+.subqr-t b{font-size:22px;font-weight:800;color:var(--pink);line-height:1.1}
+.subqr-t span{font-size:17px;font-weight:700;color:var(--soft)}
+.subqr-t em{font-style:normal;font-size:13.5px;font-weight:700;color:var(--dim);margin-top:6px;letter-spacing:.02em}
+.subqr-t em strong{color:#fff;font-weight:800}
+
 /* now playing */
 #np{position:absolute;left:1340px;top:896px;z-index:4;display:none;align-items:center;gap:10px;max-width:400px;opacity:.92}
 #np.on{display:flex;animation:npin .8s cubic-bezier(.2,.8,.2,1)}
@@ -402,6 +488,7 @@ header{position:absolute;left:88px;top:52px;right:60px;display:flex;align-items:
   </header>
   <div class="headline"><span id="hl"></span><span class="caret"></span></div>
   <div class="scene-chip" id="schip"><i></i><span id="schiptxt">LIVE</span></div>
+  <div class="pcbadge" id="pcbadge" title="Official PC status"><i></i><span>PC VERSION:</span><b id="pcbadgetxt">NOT ANNOUNCED</b></div>
   <div id="takeover"><div class="to-bg"></div><div class="to-in">
     <div class="to-kind" id="tokind">OVERTAKE</div>
     <div class="to-name" id="toname"></div>
@@ -418,8 +505,11 @@ header{position:absolute;left:88px;top:52px;right:60px;display:flex;align-items:
     </section>
     <section class="scene" id="race"></section>
     <section class="scene" id="chal"></section>
+    <section class="scene" id="radar"></section>
     <section class="scene" id="watch"></section>
+    <section class="scene" id="press"></section>
     <section class="scene" id="h2h"></section>
+    <section class="scene" id="status"></section>
     <section class="scene" id="news"></section>
     <section class="scene" id="act"></section>
   </div>
@@ -427,6 +517,11 @@ header{position:absolute;left:88px;top:52px;right:60px;display:flex;align-items:
 
   <aside id="latest"><h4>LATEST <span class="nextck" id="nextck"><svg viewBox="0 0 20 20"><circle class="t" cx="10" cy="10" r="8"/><circle class="p" id="nextring" cx="10" cy="10" r="8"/></svg><span id="nexttxt">next check —</span></span></h4><div class="evsub" id="evcount"></div><div id="evlist"></div></aside>
   <div id="strip"></div>
+  <a class="subqr" id="subqr" aria-label="Scan to subscribe on YouTube">
+    <img src="subscribe-qr.svg" width="188" height="188" alt="QR code: youtube.com/@hammadxcm">
+    <div class="subqr-t"><small><i></i>SCAN TO SUBSCRIBE</small><b>HK Gaming</b><span>youtube.com/@hammadxcm</span>
+      <em>Live tracker · <strong>gta6.fyniti.co.uk</strong></em></div>
+  </a>
   <div class="err" id="err"></div>
   <div class="boot" id="boot">
     <div class="boot-img" id="bootimg"></div><div class="boot-shade"></div>
@@ -526,6 +621,13 @@ function tips(){
   const pw = PW && PW();
   if (pw?.leader) { const ms = pw.milestones || [], nx = ms.find(m => m.at > pw.leader.score);
     out.push(`Port race leader: <b>${esc(pw.leader.name)}</b> at ${pw.leader.score}/100.${nx ? ` Next milestone: ${esc(nx.label)}.` : ""}`); }
+  const ix = S?.intel;
+  if (ix) {
+    (ix.press || []).slice(0, 3).forEach(p => out.push(`<b>${esc(p.outlet)}</b> ${esc(p.title)}`));
+    if (ix.safety) out.push(`<b>STAY SAFE</b> ${esc(ix.safety)}`);
+    if (ix.official && !ix.official.pc_announced) out.push(`<b>OFFICIAL</b> No PC version announced (as of ${esc(ix.official.as_of)}).`);
+    const top = (ix.radar || []).find(r => r.stars_per_h > 0); if (top) out.push(`<b>ON THE RADAR</b> ${esc(top.name)} is gaining ${top.stars_per_h} stars/hour.`);
+  }
   (S?.race_events || []).slice(0, 2).forEach(e => out.unshift(`<b>${KIND_LBL[e.kind] || "RACE"}</b> ${esc(e.text)}`));
   return out.length ? out : ["Fetching the latest commits from GitHub…"];
 }
@@ -628,6 +730,8 @@ function headlines(){
   }
   const re0 = S?.race_events?.[0];
   if (re0 && Date.now() - Date.parse(re0.at) < 6 * 3600e3) out.splice(1, 0, `${KIND_LBL[re0.kind] || "RACE"}: ${re0.text.length > 70 ? re0.text.slice(0, 68) + "…" : re0.text}`);
+  (S?.intel?.press || []).slice(0, 3).forEach((p, i) => { const t = `${p.outlet}: ${p.title}`; out.splice(2 + i * 2, 0, t.length > 78 ? t.slice(0, 76) + "…" : t); });
+  if (S?.intel?.official && !S.intel.official.pc_announced) out.push("Rockstar hasn't announced a PC version of GTA VI. Every PC run is unofficial.");
   const wl = S?.watch?.items?.[0]; if (wl) out.splice(1, 0, `${S.watch.name}: ${wl.title.length > 70 ? wl.title.slice(0, 68) + "…" : wl.title}`);
   const pw = PW();
   if (pw?.leader) {
@@ -700,9 +804,8 @@ function renderH2H(){
       <div class="donutrow"><div class="donut"><svg viewBox="0 0 170 170"><circle class="tr" cx="85" cy="85" r="72"/><circle class="pg" cx="85" cy="85" r="72" data-c="${c}"/></svg>
         <div class="c"><div><b>${(c*100).toFixed(0)}%</b><span>checklist</span></div></div></div>
         <div class="dl"><b>${done}</b> features done<br><b>${feats.length-done}</b> in progress<br><b>${nf(r.stars)}</b> stars</div></div>
-      <div class="meas">${meas || `<div class="sub">No measured counts in README</div>`}</div>
-      <div class="stage-list">${st}</div></div>`;
-  }).join("");
+      <div class="meas">${meas || `<div class="sub">No measured counts in README</div>`}</div></div>`;
+  }).join("") + starRaceHtml();
 }
 function animateH2H(){
   document.querySelectorAll("#h2h .pg").forEach(c => { c.style.strokeDashoffset = 452.4; void c.getBoundingClientRect(); c.style.strokeDashoffset = 452.4 * (1 - c.dataset.c); });
@@ -763,7 +866,7 @@ function renderChal(){
     <div class="credit">VIA PORTWATCH-VI.XYZ · ${c.private ? "code is private, so the result can't be independently reproduced" : "self-reported progress"}</div>`;
 }
 /* ---------- race events: overtakes, new teams, stage-ups, exclusives ---------- */
-const KIND_LBL = {overtake: "OVERTAKE", new_entry: "NEW TEAM", stage_up: "STAGE UP", exclusive: "EXCLUSIVE"};
+const KIND_LBL = {overtake: "OVERTAKE", new_entry: "NEW TEAM", stage_up: "STAGE UP", exclusive: "EXCLUSIVE", reported: "REPORTED · UNCONFIRMED", official: "OFFICIAL"};
 let raceQueue = [], raceSeen = null;
 const raceKey = e => `${e.kind}|${e.name}|${e.text}`;
 function trackRaceEvents(list){
@@ -776,7 +879,8 @@ async function showTakeover(e){
   const st = $("#stinger"); st.classList.remove("go"); void st.offsetWidth; st.classList.add("go");
   await sleep(380);
   const k = $("#tokind"); k.className = "to-kind " + (KIND_LBL[e.kind] ? e.kind : ""); k.textContent = KIND_LBL[e.kind] || "RACE UPDATE";
-  $("#toname").textContent = e.kind === "exclusive" ? "PortWatch" : e.name;
+  $("#toname").textContent = e.kind === "exclusive" ? "PortWatch" : (e.kind === "reported" || e.kind === "official") ? "GTA VI on PC" : e.name;
+  $("#takeover .to-src").textContent = (e.kind === "reported" || e.kind === "official") ? `SOURCE: ${e.name} · VERIFY BEFORE BELIEVING` : "PORT RACE · LIVE DATA FROM PORTWATCH-VI.XYZ";
   $("#tomove").innerHTML = e.kind === "overtake" ? `#${esc(e.from_rank)} <b>→</b> #${esc(e.to_rank)}`
     : e.kind === "stage_up" ? `<b>${esc(e.stage)}</b> · ${esc(e.score)}/100`
     : e.kind === "new_entry" ? `#${esc(e.to_rank)} · ${esc(e.score)}/100 · ${esc(e.stage)}` : "";
@@ -831,6 +935,84 @@ function renderNews(){
     <div class="credit">NEWS DESK · PORTWATCH-VI.XYZ</div>`;
 }
 
+/* ===================== race intel ===================== */
+const IX = () => S && S.intel;
+const iniOf = n => (n || "?").replace(/[^A-Za-z0-9]/g, "").slice(0, 2).toUpperCase();
+function renderRadar(){
+  const rd = IX()?.radar || [], el = $("#radar");
+  if (!rd.length) { el.innerHTML = ""; return; }
+  el.innerHTML = `<div class="ix-head"><h5>ON THE RADAR</h5><span>Rising teams not yet ranked · vetted, no download links</span></div>
+    <div class="rd-grid">${rd.slice(0, 6).map((r, i) => {
+      const mo = r.stars_per_h, up = mo != null && mo > 0;
+      return `<div class="rd" style="transition-delay:${i * 80}ms">
+        <div class="rd-top">${r.avatar ? `<img src="${esc(r.avatar)}" alt="">` : `<span class="ini">${esc(iniOf(r.name))}</span>`}
+          <div><b>${esc(r.name)}</b><s>${esc(r.owner)} · pushed <span data-at="${esc(r.pushed_at)}">${ago(r.pushed_at)}</span></s></div></div>
+        <p>${esc(r.note || r.desc || "")}</p>
+        <div class="rd-stats"><span><span class="st">${nf(r.stars)}</span> ★</span>
+          <span class="mo ${up ? "" : "flat"}">${up ? `▲ +${mo}/h` : mo == null ? "tracking…" : "— steady"}</span>${r.lang ? `<span class="lang">${esc(r.lang)}</span>` : ""}</div></div>`;
+    }).join("")}</div>
+    <div class="credit" style="margin-top:14px">GitHub live · teams hand-reviewed or vetted by PortWatch's scout · fake "GTA 6 PC download" repos are excluded</div>`;
+}
+function renderPress(){
+  const pr = IX()?.press || [], el = $("#press");
+  if (!pr.length) { el.innerHTML = ""; return; }
+  const [lead, ...rest] = pr;
+  el.innerHTML = `<div class="ix-head"><h5>IN THE PRESS</h5><span>${pr.length} stories about the port race · last 3 days</span></div>
+    <div class="pr-lead"><div class="pr-meta"><span class="pr-out">${esc(lead.outlet || "News")}</span><span data-at="${esc(lead.at)}">${ago(lead.at)}</span></div><h5>${esc(lead.title)}</h5></div>
+    <div class="pr-list">${rest.slice(0, 4).map((p, i) => `<div style="transition-delay:${120 + i * 80}ms"><b>${esc(p.title)}</b><span>${esc(p.outlet)} · <span data-at="${esc(p.at)}">${ago(p.at)}</span></span></div>`).join("")}</div>
+    <div class="credit">VIA GOOGLE NEWS · headlines only, links not endorsed</div>`;
+}
+function renderStatus(){
+  const ix = IX(), el = $("#status"); if (!ix) { el.innerHTML = ""; return; }
+  const o = ix.official || {}, td = ix.takedowns || {}, reps = o.reports || [];
+  const tdItems = [...(td.events || []).map(e => `<p class="${e.kind === "caution" ? "caution" : ""}">${esc(e.text)}</p>`),
+                   ...(td.dmca || []).slice(0, 3).map(d => `<p>GitHub DMCA notice: ${esc(d.text)}</p>`)];
+  el.innerHTML = `<div class="ix-head"><h5>STATUS DESK</h5><span>Official word, takedowns and safety</span></div>
+    <div class="sd-grid">
+      <div class="sd sd-off ${o.pc_announced ? "yes" : ""}"><h6>Official PC version</h6>
+        <div class="big">${o.pc_announced ? "ANNOUNCED" : "NOT ANNOUNCED"}</div>
+        <p>${esc(o.detail || "")}</p>
+        ${reps.length ? `<div class="rep">Reported, unconfirmed: ${esc(reps[0].outlet)}: “${esc(reps[0].title)}”</div>` : ""}
+        <div class="src">Source: ${esc(o.source || "")} · as of ${esc(o.as_of || "")}</div></div>
+      <div class="sd sd-td"><h6>Takedown watch</h6>${tdItems.slice(0, 4).join("")}${(td.dmca || []).length ? "" : `<p class="none" style="padding-left:0">No new GitHub DMCA notices about GTA VI ports.</p>`}</div>
+      <div class="sd sd-safe"><h6>Stay safe</h6><p>${esc(ix.safety || "")}</p></div>
+    </div>`;
+}
+function starRaceHtml(){
+  const rs = R.filter(r => (r.history || []).length > 1); if (!rs.length) return "";
+  const W = 820, H = 170, P = {l: 46, r: 10, t: 10, b: 22};
+  const all = rs.flatMap(r => r.history), t0 = Math.min(...all.map(p => p[0])), t1 = Math.max(...all.map(p => p[0])) || t0 + 1;
+  const lo = Math.min(...all.map(p => p[1])), hi = Math.max(...all.map(p => p[1]));
+  const span = Math.max(1, hi - lo), y0 = lo - span * .08, y1 = hi + span * .08;
+  const X = t => P.l + (W - P.l - P.r) * (t - t0) / Math.max(1, t1 - t0), Y = v => P.t + (H - P.t - P.b) * (1 - (v - y0) / (y1 - y0));
+  const grid = [0, .5, 1].map(f => { const v = y0 + (y1 - y0) * f; return `<line class="gl" x1="${P.l}" x2="${W - P.r}" y1="${Y(v)}" y2="${Y(v)}"/><text class="lb" x="${P.l - 8}" y="${Y(v) + 4}" text-anchor="end">${v >= 1000 ? (v / 1000).toFixed(1) + "k" : Math.round(v)}</text>`; }).join("");
+  const hrs = (t1 - t0) / 3600, xl = `<text class="lb" x="${P.l}" y="${H - 4}">${hrs >= 1 ? Math.round(hrs) + "h ago" : Math.round(hrs * 60) + "m ago"}</text><text class="lb" x="${W - P.r}" y="${H - 4}" text-anchor="end">now</text>`;
+  const lines = rs.map(r => { const pts = r.history.map(p => `${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`);
+    const last = r.history[r.history.length - 1];
+    return `<polyline points="${pts.join(" ")}" fill="none" stroke="${esc(r.accent)}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${X(last[0])}" cy="${Y(last[1])}" r="5" fill="${esc(r.accent)}" stroke="#120a22" stroke-width="2"/>`; }).join("");
+  const rate = r => { const h = r.history, last = h[h.length - 1], base = h.find(p => last[0] - p[0] <= 3600) || h[0];
+    const hh = (last[0] - base[0]) / 3600; return hh >= .2 ? Math.round((last[1] - base[1]) / hh) : null; };
+  return `<div class="sr"><div class="sr-side"><h6>Star race · GitHub</h6>${rs.map(r => { const v = rate(r);
+      return `<div class="sr-row"><i style="background:${esc(r.accent)}"></i><b>${nf(r.stars)}</b><span>${esc(r.label)}</span>${v != null ? `<em>+${nf(v)}/h</em>` : ""}</div>`; }).join("")}</div>
+    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Stars over time">${grid}${xl}${lines}</svg></div>`;
+}
+function updatePcBadge(){
+  const o = IX()?.official; if (!o) return;
+  $("#pcbadgetxt").textContent = o.pc_announced ? "ANNOUNCED" : "NOT ANNOUNCED";
+  $("#pcbadge").classList.toggle("yes", !!o.pc_announced);
+}
+/* new official/press reports about a PC version -> full-screen takeover */
+let offSeen = null;
+function trackOfficial(ix){
+  const reps = ix?.official?.reports || [], key = r => r.outlet + "|" + r.title;
+  if (offSeen === null) { offSeen = new Set(reps.map(key)); return; }
+  for (const r of reps) if (!offSeen.has(key(r))) {
+    offSeen.add(key(r));
+    raceQueue.push({kind: r.official_source ? "official" : "reported", name: r.outlet || "Press", text: r.title});
+  }
+  raceQueue = raceQueue.slice(-3);
+}
+
 /* ===================== activity ===================== */
 function renderAct(){
   const mx = Math.max(1, ...R.flatMap(r => r.commits_by_hour || []));
@@ -847,7 +1029,7 @@ function animateAct(){ document.querySelectorAll("#act .chart i").forEach(i => {
 
 /* ===================== latest feed ===================== */
 function renderLatest(fresh){
-  const list = buildQueue().slice(0, 5), el = $("#evlist");
+  const list = buildQueue().slice(0, 4), el = $("#evlist");
   el.innerHTML = list.map(e => {
     const kind = e.draft && e.kind === "opened" ? "draft" : e.kind, k = evKey(e), isNew = fresh.has(k);
     return `<div class="ev ${isNew ? "enter fresh" : ""}" data-k="${esc(k)}"><span class="pill ${kind}">${kind[0].toUpperCase()+kind.slice(1)}</span>
@@ -880,13 +1062,13 @@ function renderStrip(flip){
 setInterval(() => { if (R.length > 1) { stripRepo++; renderStrip(true); } }, 12000);
 
 /* ===================== scene director ===================== */
-const SCENES = [{id:"spot", dur:42000}, {id:"race", dur:18000}, {id:"chal", dur:15000}, {id:"watch", dur:15000}, {id:"h2h", dur:15000}, {id:"news", dur:15000}, {id:"act", dur:14000}];
+const SCENES = [{id:"spot", dur:42000}, {id:"race", dur:18000}, {id:"chal", dur:15000}, {id:"radar", dur:15000}, {id:"watch", dur:15000}, {id:"press", dur:15000}, {id:"h2h", dur:15000}, {id:"status", dur:12000}, {id:"news", dur:15000}, {id:"act", dur:14000}];
 $("#sdots").innerHTML = SCENES.map(() => "<div><i></i></div>").join("");
 let sceneIdx = 0;
 function setScene(i){
   if (typeof sceneIdx !== "undefined" && i !== sceneIdx) nextSlide(true);
   sceneIdx = i; SCENES.forEach((s, k) => $("#" + s.id).classList.toggle("on", k === i));
-  const CHIP = {spot: "PR SPOTLIGHT", race: "PORT RACE", chal: "CHALLENGER", watch: `${(S?.watch?.name || "TEAM").toUpperCase()} WATCH`, h2h: "HEAD TO HEAD", news: "NEWS DESK", act: "ACTIVITY"};
+  const CHIP = {spot: "PR SPOTLIGHT", race: "PORT RACE", chal: "CHALLENGER", watch: `${(S?.watch?.name || "TEAM").toUpperCase()} WATCH`, h2h: "HEAD TO HEAD", news: "NEWS DESK", act: "ACTIVITY", radar: "ON THE RADAR", press: "IN THE PRESS", status: "STATUS DESK"};
   $("#schiptxt").textContent = CHIP[SCENES[i].id] || "LIVE"; const chip = $("#schip"); chip.classList.remove("go"); void chip.offsetWidth; chip.classList.add("go");
   document.querySelectorAll("#sdots i").forEach((d, k) => { d.style.transition = "none"; d.style.width = k < i ? "100%" : "0"; });
   const cur = document.querySelectorAll("#sdots i")[i]; void cur.offsetWidth; cur.style.transition = `width ${SCENES[i].dur}ms linear`; cur.style.width = "100%";
@@ -895,6 +1077,9 @@ function setScene(i){
   if (SCENES[i].id === "news") { renderNews(); allOn(); }
   if (SCENES[i].id === "chal") { renderChal(); allOn(); }
   if (SCENES[i].id === "watch") { renderWatch(); allOn(); }
+  if (SCENES[i].id === "radar") { renderRadar(); allOn(); }
+  if (SCENES[i].id === "press") { renderPress(); allOn(); }
+  if (SCENES[i].id === "status") { renderStatus(); allOn(); }
   if (SCENES[i].id === "h2h") { renderH2H(); setTimeout(animateH2H, 80); focusRepo(null); document.querySelectorAll("#brand span").forEach(s => s.classList.add("on")); }
   if (SCENES[i].id === "act") { renderAct(); setTimeout(animateAct, 80); focusRepo(null); document.querySelectorAll("#brand span").forEach(s => s.classList.add("on")); }
 }
@@ -913,6 +1098,9 @@ async function director(){
     for (let k = 1; k < SCENES.length; k++) {
       if (SCENES[k].id === "chal" && !challenger()) continue;
       if (SCENES[k].id === "watch" && !(S?.watch?.items?.length)) continue;
+      if (SCENES[k].id === "radar" && !(IX()?.radar?.length)) continue;
+      if (SCENES[k].id === "press" && !(IX()?.press?.length)) continue;
+      if (SCENES[k].id === "status" && !IX()) continue;
       setScene(k); const t = Date.now() + SCENES[k].dur;
       while (Date.now() < t) { if (breakingQueue.length || raceQueue.length) break; await sleep(250); }
       if (raceQueue.length) { while (raceQueue.length) await showTakeover(raceQueue.shift()); setScene(k); }
@@ -931,10 +1119,10 @@ async function tick(){
     if (!repos.length) return;
     serverSkew = Date.parse(s.server_time) - Date.now();
     if (s.build) { if (window.BUILD && s.build !== window.BUILD) { location.reload(); return; } window.BUILD = s.build; }
-    setSlides(s.slides); MUSIC = s.music; trackRaceEvents(s.race_events);
+    setSlides(s.slides); MUSIC = s.music; trackRaceEvents(s.race_events); if (s.intel) trackOfficial(s.intel);
     if (s.counter) { COUNTER_START = Date.parse(s.counter.start); $("#cblabel").textContent = s.counter.label; $("#cbnote").textContent = "since " + s.counter.note; }
     nextPollAt = s.next_poll_at ? Date.parse(s.next_poll_at) : null; pollEvery = s.poll_seconds || 30;
-    const changed = !S || s.updated_at !== S.updated_at; S = s; R = repos;
+    const changed = !S || s.updated_at !== S.updated_at; S = s; R = repos; updatePcBadge();
     if (!changed) return;
     if (firstLoad) { if (s.slides?.length) $("#bootimg").style.backgroundImage = `url("${s.slides[0].src}")`; $("#bootmsg").textContent = "Loading live stats…"; setTimeout(bootDone, 3200); nextTip(); }
     const repoKey = R.map(r => r.slug).join();

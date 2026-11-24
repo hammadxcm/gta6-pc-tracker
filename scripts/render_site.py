@@ -46,6 +46,38 @@ def board_html(pw):
     return "\n".join(out)
 
 
+def intel_html(data):
+    i = data.get("intel") or {}
+    o, t = i.get("official") or {}, i.get("takedowns") or {}
+    reps = o.get("reports") or []
+    official = (f'<p class="st-k">Official PC version</p><h3 class="st-h {"yes" if o.get("pc_announced") else "no"}"><span class="st-dot" aria-hidden="true"></span>'
+                f'{e(o.get("headline") or "No PC version announced")}</h3><p class="st-p">{e(o.get("detail"))}</p>'
+                f'<p class="st-src">Source: {e(o.get("source"))}{" · as of " + e(o.get("as_of")) if o.get("as_of") else ""}</p>'
+                + (f'<div class="st-rep"><span class="pill2 warn">Reported, unconfirmed</span><ul>'
+                   + "".join(f"<li>{e(r['title'])} <span>· {e(r['outlet'])}</span></li>" for r in reps) + "</ul></div>" if reps else ""))
+    ev = t.get("events") or []
+    def td_item(x):
+        ic = "!" if x["kind"] == "caution" else "✕"
+        if x["text"].startswith(x["name"]):
+            body = f'<b>{e(x["name"])}</b> {e(x["text"][len(x["name"]):].strip())}'
+        else:
+            body = f'<b>{e(x["name"])}:</b> {e(x["text"])}'
+        return f'<li class="{e(x["kind"])}"><span class="td-ic" aria-hidden="true">{ic}</span><p>{body}</p></li>'
+    dm = t.get("dmca") or []
+    takedowns = ('<p class="st-k">Takedown watch</p><ul class="td">' + "".join(td_item(x) for x in ev) + '</ul><p class="st-src">'
+                 + (("GitHub DMCA notices: " + " · ".join(e(d["text"]) for d in dm)) if dm else "No new GitHub DMCA notices for GTA projects.")
+                 + "</p>")
+    radar = "".join(
+        f'<article class="rd card"><div class="rd-h"><span class="av ini" role="img" aria-label="{e(r["name"])}">{e(_ini(r["name"]))}</span>'
+        f'<div style="min-width:0"><h3>{e(r["name"])}</h3><span class="meta">{e(r["owner"])}{" · " + e(r["lang"]) if r.get("lang") else ""}</span></div></div>'
+        f'<p class="rd-n">{e(r.get("note") or r.get("desc"))}</p><div class="rd-f"><span>⭐ {r["stars"]:,}</span>'
+        f'<a href="{e(r["url"])}" target="_blank" rel="noopener nofollow">GitHub ↗</a></div></article>' for r in i.get("radar") or [])
+    press = "".join(
+        f'<article class="pr card{" lead" if n == 0 else ""}"><span class="pr-o">{e(p["outlet"])}</span><h3>{e(p["title"])}</h3></article>'
+        for n, p in enumerate((i.get("press") or [])[:12]))
+    return {"safety": e(i.get("safety") or ""), "official": official, "takedowns": takedowns, "radar": radar, "press": press}
+
+
 def faqs(data):
     pw, L = data["portwatch"], data["portwatch"]["leader"]
     reached = pw.get("furthest", "Groundwork")
@@ -80,7 +112,8 @@ def json_ld(data, q):
     pw = data["portwatch"]
     graph = [
         {"@type": "WebSite", "@id": SITE_URL + "#site", "name": "Porting Race", "url": SITE_URL,
-         "description": "Live tracker of the community efforts to run GTA VI on PC."},
+         "description": "Live tracker of the community efforts to run GTA VI on PC.",
+         "sameAs": ["https://www.youtube.com/@hammadxcm"]},
         {"@type": "WebPage", "@id": SITE_URL + "#page", "url": SITE_URL, "name": "GTA 6 PC Port Tracker: Does GTA VI Run on PC Yet?",
          "isPartOf": {"@id": SITE_URL + "#site"}, "dateModified": data["built_at"], "inLanguage": "en",
          "primaryImageOfPage": SITE_URL + "og.png", "about": {"@type": "VideoGame", "name": "Grand Theft Auto VI"}},
@@ -111,6 +144,9 @@ def render(data):
     out = fill(out, "lead", f'Leader <b>{e(L["name"])}</b> · {e(L["stage"])} · top-3 average <b>{pw["top3"]}</b> · <b>{pw["watched"]}</b> efforts watched' if L else "")
     out = fill(out, "board", board_html(pw))
     out = fill(out, "faq", faq_html(q))
+    for slot, value in intel_html(data).items():
+        if value:
+            out = fill(out, slot, value)
     out = fill(out, "upd", f"updated {built.strftime('%H:%M UTC')}")
     out = fill(out, "built", built.strftime("%a, %d %b %Y %H:%M UTC"))
     (SITE / "index.html").write_text(out)

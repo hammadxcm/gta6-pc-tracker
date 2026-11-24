@@ -6,5 +6,7 @@ window.SITE_CONFIG = {
   // and always shows whatever the channel is streaming right now.
   youtubeChannelId: "",
   // Optional: channel page for buttons when no video ID is set (e.g. "https://www.youtube.com/@yourhandle").
-  youtubeChannelUrl: "",
+  youtubeChannelUrl: "https://www.youtube.com/@hammadxcm",
+  // Subscribe link used by the QR card and Subscribe buttons.
+  youtubeSubscribeUrl: "https://www.youtube.com/@hammadxcm?sub_confirmation=1",
 };

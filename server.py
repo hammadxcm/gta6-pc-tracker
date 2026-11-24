@@ -601,6 +601,182 @@ def watch_loop():
             print("watch error:", e, flush=True)
         time.sleep(WATCH_POLL)
 
+
+# ------------------------------------------------------------ race intel
+# Rising teams (radar), press wall, official PC status, takedown watch. Shared by stream + site.
+# All strings come from external sources -> escaped in the UIs.
+INTEL_POLL = int(os.environ.get("INTEL_POLL", "600"))
+INTEL_FILE = DATA / "intel_history.json"
+_INTEL_UA = {"User-Agent": "Mozilla/5.0 (repo-live-dashboard)"}
+
+# Hand-picked teams that matter but aren't ranked by PortWatch (yet). Auto-discovery adds more.
+# Reviewed by hand (real code, not lures). Unknown repos are never shown automatically.
+RADAR_SEED = {
+    "fablinoo/palmwave": "Xbox Series compatibility layer built on XCL's approach (Rust)",
+    "ThatRecompDev/five-star-recomp": "PortWatch gave it half credit for 'Main menu' (self-reported)",
+    "JamesCicada/GTAVI-Recomp": "Translates the PS5 version instead of the Xbox build",
+    "boykopovar/AnyBox": "Xbox Series compatibility layer for Windows",
+    "rpatty-dev/PercyScarlett": "Xbox Series (Scarlett) translation layer",
+}
+# Known lures / not ports. Fake "GTA 6 PC" repos are a common malware vector.
+RADAR_BLOCK = {"lenguyenkhang816792-arch/gta-6-pc-emulator", "Phosphenq/gta6-dlss5", "ubiquitarianism/leonida", "ProjectLeonidaL/leonida"}
+_RADAR_SKIP = re.compile(r"tracker|archive|awesome|mirror|claudecode|test|hub|specs|wallpaper|map", re.I)
+_RADAR_QUERIES = ["gta6 port", "gtavi recomp", "gta vi pc", "xbox series compatibility layer", "scarlett compatibility"]
+
+# Last official word on a PC version. Update when Rockstar/Take-Two say something new.
+OFFICIAL = {
+    "pc_announced": False,
+    "headline": "No PC version announced",
+    "detail": "Take-Two's fiscal Q2 2027 results (19 Nov 2026) list Grand Theft Auto VI for PS5 and Xbox Series X|S only. "
+              "Rockstar hasn't commented on the leak or the community ports.",
+    "as_of": "2026-11-19",
+    "source": "Take-Two Interactive Q2 FY2027 results",
+}
+_OFFICIAL_DOMAINS = ("rockstargames.com", "take2games.com")
+_OFFICIAL_CLAIM = re.compile(r"rockstar\s+(officially\s+)?(confirms|announces|reveals)[^.]*\bpc\b|gta\s*(6|vi)\s+pc\s+(release date\s+)?(officially\s+)?(confirmed|announced)", re.I)
+_PRESS_QUERIES = ['"GTA 6" PC port', '"GTA 6" PC recompilation OR emulator', '"GTA VI" PC port', "Rockstar GTA 6 PC version"]
+_PRESS_KEEP = re.compile(r"gta\s*(6|vi)|grand theft auto (6|vi)", re.I)
+_PRESS_TOPIC = re.compile(r"\bpc\b|port|recomp|emulat|leak|xbox build|executable|modder|takedown|dmca|cyberleek", re.I)
+_PRESS_SKIP = re.compile(r"can (my|your) pc run|minimum (and|&) recommended|system requirements|wallpaper|price|pre-?order|deal", re.I)
+
+
+def _intel_load():
+    try:
+        return json.loads(INTEL_FILE.read_text())
+    except Exception:
+        return {"radar": {}, "dmca_seen": []}
+
+
+INTEL_HIST = _intel_load()
+
+
+def _intel_rss(query: str, days: int = 3) -> list[dict]:
+    url = "https://news.google.com/rss/search?" + _up.urlencode({"q": f"{query} when:{days}d", "hl": "en-US", "gl": "US", "ceid": "US:en"})
+    try:
+        xml = urllib.request.urlopen(urllib.request.Request(url, headers=_INTEL_UA), timeout=20).read().decode("utf-8", "replace")
+    except Exception as e:
+        print("intel: news failed:", e, flush=True)
+        return []
+    out = []
+    from email.utils import parsedate_to_datetime
+    for it in re.findall(r"<item>(.*?)</item>", xml, re.S):
+        title = _wclean((re.search(r"<title>(.*?)</title>", it, re.S) or [None, ""])[1], 220)
+        src = re.search(r'<source url="(.*?)">(.*?)</source>', it, re.S)
+        outlet, domain = (_wclean(src.group(2), 40), src.group(1)) if src else ("", "")
+        if outlet and title.endswith(" - " + outlet):
+            title = title[: -len(outlet) - 3]
+        try:
+            at = parsedate_to_datetime((re.search(r"<pubDate>(.*?)</pubDate>", it, re.S) or [None, ""])[1]).astimezone(timezone.utc).isoformat()
+        except Exception:
+            at = ""
+        out.append({"title": title, "outlet": outlet, "domain": domain, "at": at})
+    return out
+
+
+def _intel_press() -> tuple[list, list]:
+    seen, press, official_hits = set(), [], []
+    for q in _PRESS_QUERIES:
+        for it in _intel_rss(q):
+            k = _norm(it["title"])
+            if k in seen or not _PRESS_KEEP.search(it["title"]) or _PRESS_SKIP.search(it["title"]):
+                continue
+            seen.add(k)
+            if any(d in it["domain"] for d in _OFFICIAL_DOMAINS) or _OFFICIAL_CLAIM.search(it["title"]):
+                official_hits.append({**it, "official_source": any(d in it["domain"] for d in _OFFICIAL_DOMAINS)})
+            if _PRESS_TOPIC.search(it["title"]):
+                press.append(it)
+    press.sort(key=lambda x: x["at"], reverse=True)
+    return press[:24], official_hits[:5]
+
+
+def _intel_radar(pw_ranked_repos: set, candidates: list) -> list:
+    repos = dict(RADAR_SEED)
+    tok = {"Authorization": f"Bearer {TOKEN}"} if TOKEN else {}
+    since = (datetime.now(timezone.utc) - timedelta(days=10)).strftime("%Y-%m-%d")
+    for c in candidates:   # PortWatch scout picks with high substance
+        if c.get("repo") and (c.get("substance") or 0) >= 85 and (c.get("stars") or 0) >= 5 and not _RADAR_SKIP.search(c["repo"]):
+            repos.setdefault(c["repo"], f"PortWatch scout pick (substance {c['substance']})")
+    out, now = [], int(time.time())
+    for full, note in repos.items():
+        if full in pw_ranked_repos or full in RADAR_BLOCK:
+            continue
+        try:
+            r, _ = gh(f"/repos/{full}")
+        except Exception:
+            continue
+        if r.get("archived") or r.get("disabled"):
+            continue
+        if full not in RADAR_SEED and (r.get("language") in (None, "HTML", "PowerShell", "Batchfile") or r.get("size", 0) < 300):
+            continue   # scout pick that looks like a page/installer rather than code
+        h = INTEL_HIST["radar"].setdefault(full, [])
+        if not h or h[-1][1] != r["stargazers_count"] or now - h[-1][0] > 1800:
+            h.append([now, r["stargazers_count"]])
+        del h[:-500]
+        base = next((x for x in h if now - x[0] <= 3 * 3600), h[0])
+        hours = max((now - base[0]) / 3600, 0.25)
+        out.append({"repo": full, "name": r["name"], "owner": r["owner"]["login"], "avatar": r["owner"]["avatar_url"] + "&s=80",
+                    "desc": _wclean(r.get("description"), 140), "note": note, "stars": r["stargazers_count"],
+                    "stars_per_h": round((r["stargazers_count"] - base[1]) / hours, 1) if len(h) > 1 else None,
+                    "pushed_at": r["pushed_at"], "created_at": r["created_at"], "lang": r.get("language"), "url": r["html_url"]})
+    out.sort(key=lambda x: (-(x["stars_per_h"] or 0), -x["stars"]))
+    return out[:12]
+
+
+def _intel_takedowns(pw: dict) -> dict:
+    events = [{"name": n["name"], "repo": n.get("repo"), "kind": "nuked", "text": f"{n['name']} was taken offline and is no longer ranked."}
+              for n in (pw or {}).get("nuked", [])]
+    if any(n["name"] == "Leonida" for n in (pw or {}).get("nuked", [])):
+        events.append({"name": "Leonida", "repo": None, "kind": "caution",
+                       "text": "Several new GitHub repos claim to continue Leonida. None is verified: avoid downloads from them."})
+    try:
+        commits, _ = gh("/repos/github/dmca/commits?per_page=60")
+        for c in commits:
+            msg = c["commit"]["message"].splitlines()[0]
+            if re.search(r"take-?two|rockstar|gta|grand theft", msg, re.I) and c["sha"] not in INTEL_HIST["dmca_seen"]:
+                INTEL_HIST["dmca_seen"].append(c["sha"])
+                INTEL_HIST.setdefault("dmca", []).insert(0, {"at": c["commit"]["author"]["date"], "text": _wclean(msg, 160),
+                                                              "url": c["html_url"]})
+    except Exception as e:
+        print("intel: dmca failed:", e, flush=True)
+    del INTEL_HIST["dmca_seen"][:-500]
+    return {"events": events, "dmca": INTEL_HIST.get("dmca", [])[:8], "checked_at": datetime.now(timezone.utc).isoformat()}
+
+
+def poll_intel(pw: dict | None, candidates: list | None = None) -> dict:
+    ranked = {r["repo"] for r in (pw or {}).get("ranked", []) if r.get("repo")} | {c["slug"] for c in REPOS}
+    press, official_hits = _intel_press()
+    intel = {
+        "radar": _intel_radar(ranked, candidates or []),
+        "press": press,
+        "official": {**OFFICIAL, "reports": official_hits},
+        "takedowns": _intel_takedowns(pw),
+        "safety": "No playable GTA VI PC build exists. 'GTA 6 PC download' links and installers are fakes or malware.",
+        "checked_at": datetime.now(timezone.utc).isoformat(),
+    }
+    try:
+        INTEL_FILE.write_text(json.dumps(INTEL_HIST))
+    except Exception:
+        pass
+    return intel
+
+
+def _intel_candidates() -> list:
+    try:
+        d, _ = gh(PORTWATCH_URL)
+        return [c for c in d.get("candidates", []) if c.get("kind") == "effort"]
+    except Exception:
+        return []
+
+
+def intel_loop():
+    time.sleep(20)  # let the PortWatch poll land first
+    while True:
+        try:
+            STATE["intel"] = poll_intel(STATE.get("portwatch"), _intel_candidates())
+        except Exception as e:
+            print("intel error:", type(e).__name__, e, flush=True)
+        time.sleep(INTEL_POLL)
+
 # ------------------------------------------------------------------------- slides
 SLIDES = STATIC / "slides"
 IMG_EXT = {".jpg", ".jpeg", ".png", ".webp", ".avif"}
@@ -666,5 +842,6 @@ if __name__ == "__main__":
     threading.Thread(target=poll_loop, daemon=True).start()
     threading.Thread(target=portwatch_loop, daemon=True).start()
     threading.Thread(target=watch_loop, daemon=True).start()
+    threading.Thread(target=intel_loop, daemon=True).start()
     print(f"Repo Live on http://localhost:{PORT}  (poll every {POLL}s, token={'yes' if TOKEN else 'no'})")
     ThreadingHTTPServer(("0.0.0.0", PORT), Handler).serve_forever()
