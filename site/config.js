@@ -1,7 +1,7 @@
 // Site settings. Edit and push; the site picks them up on the next deploy.
 window.SITE_CONFIG = {
   // Current live broadcast (the part after "watch?v=" in the YouTube link). Takes priority over the channel.
-  youtubeVideoId: "8CrRwSME_aM",
+  youtubeVideoId: "12Ob2yGzxbU",
   // Optional: channel ID ("UC…", YouTube Studio > Settings > Channel > Advanced). Used when no video ID is set,
   // and always shows whatever the channel is streaming right now.
   youtubeChannelId: "",
