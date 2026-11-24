@@ -37,6 +37,8 @@ Custom background: drop a `static/bg.jpg` (one you have rights to) and it replac
 Repos, labels and accent colours are set in `REPOS` at the top of `server.py`.
 
 ## Public tracker website (GitHub Pages)
+Live at **https://gta6.fyniti.co.uk/** (GoDaddy CNAME `gta6` → `hammadxcm.github.io`; `site/CNAME` holds the domain).
+
 `site/` is a static tracker site: the full race (every ranked team, with details, filters and sorting), milestone guide, progress-over-time chart, change log, XCL/VIctory GitHub stats, news, and the live stream embed.
 
 - `.github/workflows/pages.yml` rebuilds `site/data/live.json` every 15 minutes with `scripts/build_site_data.py` (same pollers as the stream) and deploys to Pages.

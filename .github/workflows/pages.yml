@@ -30,6 +30,7 @@ jobs:
       - name: Build live data
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SITE_URL: https://gta6.fyniti.co.uk/
         run: python scripts/build_site_data.py site/data/live.json
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

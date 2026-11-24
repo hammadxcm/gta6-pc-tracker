@@ -9,7 +9,7 @@ from datetime import datetime
 from pathlib import Path
 
 SITE = Path(__file__).resolve().parent.parent / "site"
-SITE_URL = os.environ.get("SITE_URL", "https://hammadxcm.github.io/gta6-pc-tracker/").rstrip("/") + "/"
+SITE_URL = os.environ.get("SITE_URL", "https://gta6.fyniti.co.uk/").rstrip("/") + "/"
 STAGES = ["Groundwork", "Exe runs", "First frame", "Main menu", "In-game", "30 FPS", "Stable"]
 e = lambda s: html.escape(str(s if s is not None else ""), quote=True)
 
