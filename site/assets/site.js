@@ -83,8 +83,8 @@ function renderBoard(){
         <div style="min-width:0"><h3 class="eff-n">${esc(r.name)}${r.private ? '<em class="tag priv">PRIVATE</em>' : ""}${ours.has(r.repo) ? '<em class="tag ours">ON STREAM</em>' : ""}</h3>
           <span class="meta"><span class="m-ap">${esc(r.approach)} · </span>${esc(r.target)}${r.stars ? ` · ⭐ ${nf(r.stars)}` : ""}<span class="m-push">${r.pushed_at ? ` · pushed ${ago(r.pushed_at)}` : ""}</span></span></div>
         <span class="stage s${si}">${esc(r.stage)}</span><span class="sc">${r.score}</span><span class="chev">›</span>
-        <div class="bar"><i data-w="${r.score}"></i></div></summary>
-      <div class="body">
+        <div class="bar seg-wrap">${segBar(r.score)}</div></summary>
+      <div class="body">${trackBars(r)}
         ${r.summary ? `<p class="sum">${esc(r.summary)}</p>` : ""}
         <div class="facts"><span>Verification: ${esc(r.verification || "unknown")}</span>${r.fps ? `<span>~${r.fps} fps</span>` : ""}${r.commits7d != null ? `<span>${r.commits7d >= 100 ? "100+" : r.commits7d} commits / 7d</span>` : ""}${r.proven_on ? `<span>Proven on: ${esc(r.proven_on)}</span>` : ""}${r.assessed_at ? `<span>Assessed ${esc(r.assessed_at)}</span>` : ""}${repoUrl ? `<a href="${esc(repoUrl)}" target="_blank" rel="noopener">github.com/${esc(r.repo)} ↗</a>` : `<span>${esc(r.byline || "No public code")}</span>`}</div>
         ${(r.highlights || []).length ? `<div class="ok"><h4>What works</h4><ul>${r.highlights.map(h => `<li>${esc(h)}</li>`).join("")}</ul></div>` : ""}
@@ -123,6 +123,21 @@ function renderTimeline(){
   $("#timeline").innerHTML = ch.map(c => `<li><span class="when"><span class="ic ${ic[c.kind] ? esc(c.kind) : "other"}">${ic[c.kind] || "•"}</span><time>${esc(c.date)}</time></span><p>${esc(c.text)}</p></li>`).join("") || "<li><p>No changes yet.</p></li>";
 }
 
+/* race-style progress: a bar split at each milestone, filling segment by segment */
+function segBar(score, cls = ""){
+  const ms = (D.portwatch.milestones || []).filter(m => m.at > 0 && m.at < 100).map(m => m.at);
+  return `<div class="seg-bar ${cls}" role="img" aria-label="${score} of 100">${ms.map(at => `<s style="left:${at}%"></s>`).join("")}<i data-w="${score}"></i><b class="seg-flag" data-l="${score}"></b></div>`;
+}
+function trackBars(r){
+  if (!r.tracks || !r.playable) return "";
+  return `<div class="tracks">${r.tracks.map(t => `<div class="trk"><div class="trk-h"><b>${esc(t.label)}</b><span>${esc(t.text)}</span></div><div class="trk-b"><i data-w="${(t.v * 100).toFixed(1)}"></i></div></div>`).join("")}</div>`;
+}
+function renderChips(){
+  const pw = D.portwatch;
+  $("#hchips").innerHTML = [[pw.furthest, "Furthest milestone"], [pw.top3, "Top-3 average"], [`${pw.playable_count ?? "–"}`, "Teams at Playable"], [pw.watched, "Efforts tracked"]]
+    .map(([v, l]) => `<div class="chip"><b>${esc(v)}</b><span>${esc(l)}</span></div>`).join("");
+}
+
 const LCOL = ["#ff3e9a", "#ff8a5c", "#36e4e0", "#8d5cff", "#ffc38a", "#6ef0a0"];
 function leaders(n = 5){
   const pw = D.portwatch, all = [...(pw.ranked || []).map(r => ({...r, pub: true})), ...(pw.private || []).map(p => ({...p, pub: false}))]
@@ -141,12 +156,12 @@ function stats(repo){
 }
 function renderLeaders(){
   const ours = new Set(D.portwatch.ours || []);
-  $("#leadgrid").innerHTML = leaders(5).map(r => { const st = r.pub ? stats(r.repo) : null, h = (r.highlights || [])[0], bl = (r.blockers || [])[0];
+  $("#leadgrid").innerHTML = leaders(4).map(r => { const st = r.pub ? stats(r.repo) : null, h = (r.highlights || [])[0], bl = (r.blockers || [])[0];
     return `<article class="ld card reveal" style="--acc:${esc(r.color)}">
       <div class="ld-tags"><span class="${r.pub ? "t-pub" : "t-prv"}">${r.pub ? "#" + r.rank + " public" : "Private"}</span>${ours.has(r.repo) ? '<span class="t-ours">On stream</span>' : ""}</div>
       <div class="ld-who">${avatar(r)}<h3>${esc(r.short)}</h3></div>
       <div class="ld-sc"><b>${r.score}</b><small>/100</small></div>
-      <div class="ld-bar"><i data-w="${r.score}"></i></div>
+      ${segBar(r.score, "sb-sm")}${trackBars(r)}
       <p class="ld-st">${esc(r.stage)}${r.fps ? ` · ~${r.fps} fps` : ""}</p>
       ${st ? `<dl class="ld-dl"><div><dt>Stars</dt><dd>${nf(st.stars)}</dd></div><div><dt>Commits 24h</dt><dd>${nf(st.commits_24h)}${st.capped ? "+" : ""}</dd></div><div><dt>Open PRs</dt><dd>${nf(st.open_prs)}</dd></div><div><dt>Last push</dt><dd>${st.pushed_at ? ago(st.pushed_at) : "–"}</dd></div></dl>
              <a class="ld-link" href="https://github.com/${esc(r.repo)}" target="_blank" rel="noopener">github.com/${esc(r.repo)} ↗</a>`
@@ -159,6 +174,7 @@ function renderPrivate(){
   $("#private-sec").hidden = !pv.length;
   $("#privgrid").innerHTML = pv.map(p => `<article class="pv card reveal">
     <div class="pv-h">${avatar(p)}<div><h3>${esc(p.name)} <span class="t-prv">Private</span></h3><p>${esc(p.byline || "")}</p></div><div class="pv-sc"><b>${p.score}</b><small>/100</small><span>${esc(p.stage)}${p.fps ? ` · ~${p.fps} fps` : ""}</span></div></div>
+    ${segBar(p.score, "sb-sm")}${trackBars(p)}
     ${p.summary ? `<p class="pv-sum">${esc(p.summary)}</p>` : ""}
     <div class="pv-cols"><div class="ok"><h4>What works</h4><ul>${(p.highlights || []).map(h => `<li>${esc(h)}</li>`).join("")}</ul></div>
       <div class="no"><h4>Blockers</h4><ul>${(p.blockers || []).map(h => `<li>${esc(h)}</li>`).join("")}</ul></div></div>
@@ -297,6 +313,7 @@ function animate(){
   const io = new IntersectionObserver(es => es.forEach(e => {
     if (!e.isIntersecting) return; const el = e.target; el.classList.add("in");
     el.querySelectorAll("[data-w]").forEach(i => i.style.width = i.dataset.w + "%");
+    el.querySelectorAll(".seg-flag").forEach(f => f.style.left = f.dataset.l + "%");
     el.querySelectorAll(".ring .p").forEach(c => c.style.strokeDashoffset = 289 * (1 - c.dataset.c));
     if (el.id === "ladder") layoutMarks();
     io.unobserve(el);
@@ -373,7 +390,7 @@ async function load(){
     const r = await fetch(`data/live.json?t=${Math.floor(Date.now() / 6e4)}`, {cache: "no-cache"});
     D = await r.json();
   } catch (e) { $("#upd").textContent = "data unavailable"; return; }
-  renderHero(); renderLeaders(); renderPrivate(); renderRace(); renderTrend(); renderTimeline(); renderChallenger(); renderProjects(); renderNews(); renderLive(); renderStatus(); renderRadar(); renderPress(); renderStars(); renderRaceBars(); renderLiveBoard(); renderTicker(); animate(); clock();
+  renderHero(); renderChips(); renderLeaders(); renderPrivate(); renderRace(); renderTrend(); renderTimeline(); renderChallenger(); renderProjects(); renderNews(); renderLive(); renderStatus(); renderRadar(); renderPress(); renderStars(); renderRaceBars(); renderLiveBoard(); renderTicker(); animate(); clock();
   $("#built").textContent = new Date(D.built_at).toUTCString();
 }
 setInterval(() => { if (D) $("#upd").textContent = `updated ${ago(D.built_at)}`; }, 1000);

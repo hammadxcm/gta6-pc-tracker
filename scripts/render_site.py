@@ -201,6 +201,9 @@ def render(data):
     out = fill(out, "board", board_html(pw))
     out = fill(out, "faq", faq_html(q))
     out = fill(out, "leaders", leaders_html(data))
+    out = fill(out, "chips", "".join(f'<div class="chip"><b>{e(v)}</b><span>{e(l)}</span></div>' for v, l in (
+        (pw.get("furthest"), "Furthest milestone"), (pw.get("top3"), "Top-3 average"),
+        (pw.get("playable_count", "–"), "Teams at Playable"), (pw.get("watched"), "Efforts tracked"))))
     out = fill(out, "private", private_html(data))
     for slot, value in {**intel_html(data), **live_html(data)}.items():
         if value:

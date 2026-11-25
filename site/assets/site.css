@@ -534,3 +534,29 @@ img{display:block}
 .rb-n .t-prv{font-size:10px;padding:2px 6px;vertical-align:2px}
 @media (max-width:1100px){.leaders{grid-template-columns:repeat(3,minmax(0,1fr))}.privgrid{grid-template-columns:1fr 1fr}}
 @media (max-width:700px){.leaders,.privgrid{grid-template-columns:minmax(0,1fr)}}
+
+/* ---------- race UI: stat chips, segmented milestone bars, quality tracks ---------- */
+.chips{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:20px;max-width:640px}
+.chip{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;backdrop-filter:blur(8px)}
+.chip b{display:block;font-family:var(--disp);font-size:28px;font-weight:800;line-height:1}
+.chip span{font-size:12px;color:var(--dim);font-weight:700;letter-spacing:.03em}
+.seg-bar{position:relative;height:12px;border-radius:7px;background:rgba(255,255,255,.08);overflow:visible;margin:6px 0 2px}
+.seg-bar>i{position:absolute;inset:0 auto 0 0;width:0;border-radius:7px;background:linear-gradient(90deg,#8d5cff,#ff3e9a 60%,#ff8a5c);
+  box-shadow:0 0 14px rgba(255,62,154,.45);transition:width 1.6s cubic-bezier(.2,.8,.2,1)}
+.seg-bar>i::after{content:"";position:absolute;inset:0;border-radius:7px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.45),transparent);background-size:40% 100%;background-repeat:no-repeat;animation:segshine 2.6s 1.6s ease-in-out infinite}
+@keyframes segshine{from{background-position:-40% 0}to{background-position:140% 0}}
+.seg-bar>s{position:absolute;top:-2px;bottom:-2px;width:3px;background:var(--bg);z-index:2}
+.seg-flag{position:absolute;top:50%;left:0;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:#fff;box-shadow:0 0 0 4px rgba(255,62,154,.35),0 0 16px #ff3e9a;z-index:3;transition:left 1.6s cubic-bezier(.2,.8,.2,1)}
+.seg-wrap{height:auto!important;background:none!important;overflow:visible!important}
+.tracks{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:4px 0}
+.trk-h{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;margin-bottom:5px;min-width:0}
+.trk-h b{font-weight:800}.trk-h span{color:var(--dim);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trk-b{height:6px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden}
+.trk-b i{display:block;height:100%;width:0;background:linear-gradient(90deg,#36e4e0,#8d5cff);transition:width 1.4s .3s cubic-bezier(.2,.8,.2,1)}
+.ld .tracks,.pv .tracks{grid-template-columns:1fr 1fr;gap:8px}
+.eff .body .tracks{grid-column:1/-1}
+@media (max-width:900px){.tracks{grid-template-columns:1fr 1fr}.chips{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.ld .tracks,.pv .tracks{grid-template-columns:1fr!important;gap:7px!important}
+.seg-bar.sb-sm{height:9px;margin:2px 0}
+.rb-n{min-width:0;white-space:nowrap;overflow:visible}

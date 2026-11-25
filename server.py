@@ -418,6 +418,25 @@ LABEL = {k: l for k, l, _ in MILESTONES}
 GW_WEIGHTS = {"loader": .2, "shaders": .28, "graphics": .32, "proven": .2}
 STAB = {"unknown": 0, "constant": 0, "often": .25, "sometimes": .55, "rarely": .8, "stable": 1}
 TRACK_W = {"story": .35, "render": .25, "perf": .2, "stability": .2}
+STORY_STEPS = [(0, "Stuck in the opening"), (.1, "Prologue cleared"), (.25, "First missions"), (.4, "First act"),
+               (.6, "Half the story"), (.85, "Main story to the credits"), (1, "100% completion")]
+RENDER_STEPS = [(0, "Black or broken"), (.25, "Shapes drawn, mostly unlit"), (.5, "Lit, major effects missing"),
+                (.75, "Close to the console"), (1, "Matches the console")]
+STAB_LABEL = [(0, "Unknown / crashes"), (.25, "Crashes often"), (.55, "Crashes sometimes"), (.8, "Rarely crashes"), (1, "Stable")]
+
+
+def _step(steps, v):
+    return [l for t, l in steps if v >= t - 1e-9][-1]
+
+
+def track_view(sc: dict, gta: dict) -> list:
+    """The four quality tracks with human labels (only meaningful once Playable)."""
+    t = sc["tracks"]
+    fps = gta.get("fps") or 0
+    return [{"key": "story", "label": "Story", "v": t["story"], "text": _step(STORY_STEPS, t["story"])},
+            {"key": "render", "label": "Rendering", "v": t["render"], "text": _step(RENDER_STEPS, t["render"])},
+            {"key": "perf", "label": "Performance", "v": t["perf"], "text": f"{fps:g} fps" if fps else "not measured"},
+            {"key": "stability", "label": "Stability", "v": t["stability"], "text": _step(STAB_LABEL, t["stability"])}]
 MILESTONE_DESC = {
     "Groundwork": "Loader, system libraries, shader translation and graphics layer, built before the executable exists.",
     "Exe runs": "GTA VI's executable is mapped, its imports resolve and its own code starts running.",
@@ -492,7 +511,8 @@ def poll_portwatch():
                 "summary": str(r["e"].get("summary") or "")[:220],
                 "highlights": [str(h)[:110] for h in (r["e"].get("highlights") or [])[:3]],
                 "blockers": [str(h)[:110] for h in (r["e"].get("blockers") or [])[:3]],
-                "verification": r["e"].get("verification")} for r in everyone if not is_public(r["e"])]
+                "verification": r["e"].get("verification"),
+                "tracks": track_view(r, r["e"].get("gta") or {}), "playable": r["reached"] in ("playable", "complete")} for r in everyone if not is_public(r["e"])]
     repo_re = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
     out = []
     for i, r in enumerate(ranked[:40]):
@@ -503,6 +523,7 @@ def poll_portwatch():
                     "score": r["score"], "stage": r["reachedLabel"], "approach": str(e.get("approach") or "")[:40],
                     "target": str(e.get("target") or "")[:40], "stars": (e.get("stats") or {}).get("stars"),
                     "verification": e.get("verification"), "summary": str(e.get("summary") or "")[:220],
+                    "tracks": track_view(r, e.get("gta") or {}), "playable": r["reached"] in ("playable", "complete"),
                     "private": repo is None, "byline": str(e.get("byline") or "")[:80],
                     "fps": (e.get("gta") or {}).get("fps"),
                     "pushed_at": (e.get("stats") or {}).get("pushedAt"),
@@ -527,6 +548,8 @@ def poll_portwatch():
         "furthest": MILESTONES[furthest][1],
         "tracked": len(tracked),
         "watched": len(d.get("efforts", [])),
+        "playable_count": sum(1 for r in everyone if r["reached"] in ("playable", "complete")),
+        "boots_count": sum(1 for r in everyone if _ladder((r["e"].get("gta") or {}).get("boots")) >= 1),
         "milestones": [{"label": l, "at": at} for _, l, at in MILESTONES],
         "milestone_desc": MILESTONE_DESC,
         "nuked": [{"name": str(e.get("name", ""))[:40], "repo": e.get("repo")} for e in d.get("efforts", []) if e.get("nuked")],
