@@ -279,7 +279,7 @@ function renderStars(){
 }
 
 function renderLive(){
-  const vid = (CFG.youtubeVideoId || "").trim(), id = (CFG.youtubeChannelId || "").trim();
+  const vid = ((D && D.broadcast && D.broadcast.video_id) || CFG.youtubeVideoId || "").trim(), id = (CFG.youtubeChannelId || "").trim();
   const watch = vid ? `https://youtube.com/live/${encodeURIComponent(vid)}` : (CFG.youtubeChannelUrl || "").trim();
   let src = "";
   if (/^[\w-]{11}$/.test(vid)) src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(vid)}?rel=0`;

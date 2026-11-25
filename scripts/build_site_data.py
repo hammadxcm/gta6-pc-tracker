@@ -70,12 +70,17 @@ def main(out_path: str):
     except Exception as e:
         print("intel failed:", e)
         intel = prev.get("intel")
+    try:
+        broadcast = server.poll_broadcast()
+    except Exception as e:
+        print("broadcast failed:", e)
+        broadcast = {"video_id": server.live_video_id()} if server.live_video_id() else None
     exe = pw.get("exe") or {}
     counter = dict(server.COUNTER)
     if exe.get("status") == "released" and exe.get("releasedAt"):
         counter["start"] = exe["releasedAt"]
     data = {"built_at": datetime.now(timezone.utc).isoformat(), "repos": repos, "portwatch": pw,
-            "watch": watch, "intel": intel, "counter": counter, "team_stats": team_stats}
+            "watch": watch, "intel": intel, "counter": counter, "team_stats": team_stats, "broadcast": broadcast}
     Path(out_path).parent.mkdir(parents=True, exist_ok=True)
     Path(out_path).write_text(json.dumps(data, separators=(",", ":")))
     import render_site

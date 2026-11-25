@@ -955,6 +955,44 @@ def site_refresh_loop():
             print("site refresh error:", e, flush=True)
         time.sleep(300)
 
+
+# ------------------------------------------------------------ YouTube broadcast (single source: live_video.txt)
+LIVE_VIDEO_FILE = ROOT / "live_video.txt"
+
+
+def live_video_id() -> str:
+    v = os.environ.get("YT_VIDEO_ID", "").strip()
+    if not v and LIVE_VIDEO_FILE.is_file():
+        v = LIVE_VIDEO_FILE.read_text().strip()
+    return v if re.fullmatch(r"[\w-]{11}", v or "") else ""
+
+
+def poll_broadcast() -> dict | None:
+    """Real start time of the current broadcast, read from its public watch page."""
+    vid = live_video_id()
+    if not vid:
+        return None
+    req = urllib.request.Request(f"https://www.youtube.com/watch?v={vid}", headers={
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36",
+        "Accept-Language": "en-US", "Cookie": "CONSENT=YES+1"})
+    h = urllib.request.urlopen(req, timeout=20).read().decode("utf-8", "replace")
+    pick = lambda pat: (re.findall(pat, h) or [None])[0]
+    return {"video_id": vid, "url": f"https://youtube.com/live/{vid}",
+            "live": pick(r'"isLiveNow":(true|false)') == "true",
+            "started_at": pick(r'"startTimestamp":"([^"]+)"'), "ended_at": pick(r'"endTimestamp":"([^"]+)"'),
+            "checked_at": datetime.now(timezone.utc).isoformat()}
+
+
+def broadcast_loop():
+    while True:
+        try:
+            b = poll_broadcast()
+            if b:
+                STATE["broadcast"] = b
+        except Exception as e:
+            print("broadcast poll failed:", e, flush=True)
+        time.sleep(300)
+
 # ------------------------------------------------------------------------- slides
 SLIDES = STATIC / "slides"
 IMG_EXT = {".jpg", ".jpeg", ".png", ".webp", ".avif"}
@@ -1036,6 +1074,7 @@ if __name__ == "__main__":
     threading.Thread(target=portwatch_loop, daemon=True).start()
     threading.Thread(target=watch_loop, daemon=True).start()
     threading.Thread(target=intel_loop, daemon=True).start()
+    threading.Thread(target=broadcast_loop, daemon=True).start()
     threading.Thread(target=site_refresh_loop, daemon=True).start()
     print(f"Repo Live on http://localhost:{PORT}  (poll every {POLL}s, token={'yes' if TOKEN else 'no'})")
     # Local-only by default: the stream's own browser is on this machine. Set BIND=0.0.0.0 to share on a LAN.

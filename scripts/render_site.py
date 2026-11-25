@@ -190,6 +190,10 @@ def render(data):
     q = faqs(data)
     og_desc = (f"{L['name']} leads at {L['score']}/100 ({L['stage']}). Live scores, GitHub stats and news for XCL, VIctory "
                f"and every team racing to run GTA VI on PC.") if L else "Live tracker of every effort to run GTA VI on PC."
+    vid = (data.get("broadcast") or {}).get("video_id") or ""
+    if not vid and (SITE.parent / "live_video.txt").is_file():
+        vid = (SITE.parent / "live_video.txt").read_text().strip()
+    tpl = tpl.replace("__LIVE_URL__", f"https://youtube.com/live/{vid}" if vid else "https://www.youtube.com/@hammadxcm/live")
     out = (tpl.replace("__SITE_URL__", SITE_URL).replace("__OG_DESC__", e(og_desc)).replace("__JSON_LD__", json_ld(data, q)))
     H = pw.get("headline") or L
     out = fill(out, "score", e(H["score"]) if H else "–")
