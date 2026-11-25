@@ -183,8 +183,11 @@ function renderPrivate(){
 
 function renderNuked(){
   const nk = D.portwatch.nuked_detail || [];
+  const lead = [...nk].sort((x, y) => (y.dmca - x.dmca) || ((y.stars || 0) - (x.stars || 0)))[0];
+  $("#hzbanner").hidden = !lead;
+  if (lead) $("#hztext").textContent = `${lead.name} is offline${lead.dmca ? ` after a Take-Two DMCA notice (${lead.dmca_at})` : ""}. ${nk.length > 1 && innerWidth > 600 ? `${nk.length} projects removed from GitHub so far.` : ""}`;
   $("#offline").hidden = !nk.length;
-  $("#nkgrid").innerHTML = nk.map(n => `<article class="nk card reveal">
+  $("#nkgrid").innerHTML = nk.map(n => `<article class="nk card reveal"><span class="nk-tape" aria-hidden="true"></span>
     <span class="nk-stamp">${n.dmca ? "DMCA" : "Offline"}</span>
     <h3>${esc(n.name)}</h3><p class="nk-repo">${esc(n.repo || "")}</p>
     <dl class="nk-dl"><div><dt>Gone since</dt><dd>${esc(n.at || "?")}</dd></div>${n.dmca_at ? `<div><dt>DMCA notice</dt><dd>${esc(n.dmca_at)}</dd></div>` : ""}
