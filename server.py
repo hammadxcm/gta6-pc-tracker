@@ -440,6 +440,13 @@ def _ladder(v):
     return 1.0 if v is True else 0.0 if v in (False, None) else _c01(v)
 
 
+def _stab(v):
+    """Stability is a label ('rarely', 'stable', ...) or, since 2026-11-25, a number 0-1."""
+    if isinstance(v, (int, float)) and not isinstance(v, bool):
+        return _c01(v)
+    return STAB.get(v, 0)
+
+
 def score_effort(e: dict) -> dict:
     """Mirror of portwatch-vi.xyz assets/js/scoring.js scoreEffort()."""
     gw = sum(w * _c01((e.get("groundwork") or {}).get(k)) for k, w in GW_WEIGHTS.items())
@@ -456,7 +463,7 @@ def score_effort(e: dict) -> dict:
             score = max(score, prev + v * (TICK[key] - prev))
         break
     tracks = {"story": _c01(gta.get("story")), "render": _c01(gta.get("render")),
-              "perf": _c01((float(gta.get("fps") or 0)) / 30), "stability": STAB.get(gta.get("stability"), 0)}
+              "perf": _c01((float(gta.get("fps") or 0)) / 30), "stability": _stab(gta.get("stability"))}
     quality = sum(TRACK_W[k] * tracks[k] for k in TRACK_W)
     if reached == "playable":
         score = TICK["playable"] + quality * (TICK["complete"] - TICK["playable"])
