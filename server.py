@@ -544,6 +544,13 @@ def poll_portwatch():
         "headline": {"name": str(head["e"].get("name", ""))[:40], "score": head["score"], "stage": head["reachedLabel"],
                      "private": not is_public(head["e"])} if head else None,   # top of everyone, as PortWatch's headline
         "private": private,
+        # PortWatch discoveries not yet reviewed (no score/stage): shown in the race as UNRATED, most-starred first
+        "unrated": sorted(({"name": str(c.get("name") or c["repo"].split("/")[-1])[:40], "repo": c["repo"],
+                            "stars": c.get("stars") or 0, "language": str(c.get("language") or "")[:20]}
+                           for c in d.get("candidates", []) if c.get("kind") == "effort" and c.get("status") == "new"
+                           and repo_re.match(c.get("repo") or "")
+                           and c["repo"].lower() not in {str(e.get("repo") or "").lower() for e in d.get("efforts", [])}),
+                          key=lambda x: -x["stars"]),
         "top3": round(sum(r["score"] for r in top3) / len(top3), 1) if top3 else 0,
         "furthest": MILESTONES[furthest][1],
         "tracked": len(tracked),

@@ -181,6 +181,11 @@ function renderPrivate(){
     <p class="pv-v">Verification: ${esc(p.verification || "unknown")}${p.based_on?.length ? ` · built on ${esc(p.based_on.join(" + "))}` : ""}</p></article>`).join("");
 }
 
+function renderUnrated(){
+  const u = D.portwatch.unrated || [];
+  $("#unrated-sec").hidden = !u.length;
+  $("#unrgrid").innerHTML = u.map(x => `<a class="un card reveal" href="https://github.com/${esc(x.repo)}" target="_blank" rel="noopener"><b>${esc(x.name)}</b><span>${esc(x.repo)}</span><small>★ ${Number(x.stars || 0).toLocaleString("en-US")}${x.language ? " · " + esc(x.language) : ""}</small></a>`).join("");
+}
 function renderNuked(){
   const nk = D.portwatch.nuked_detail || [];
   const lead = [...nk].sort((x, y) => (y.dmca - x.dmca) || ((y.stars || 0) - (x.stars || 0)))[0];
@@ -417,7 +422,7 @@ async function load(){
     const r = await fetch(`data/live.json?t=${Math.floor(Date.now() / 6e4)}`, {cache: "no-cache"});
     D = await r.json();
   } catch (e) { $("#upd").textContent = "data unavailable"; return; }
-  renderHero(); renderChips(); renderNuked(); renderLeaders(); renderPrivate(); renderRace(); renderTrend(); renderTimeline(); renderChallenger(); renderProjects(); renderNews(); renderLive(); renderStatus(); renderRadar(); renderPress(); renderStars(); renderRaceBars(); renderLiveBoard(); renderTicker(); animate(); clock();
+  renderHero(); renderChips(); renderNuked(); renderLeaders(); renderPrivate(); renderUnrated(); renderRace(); renderTrend(); renderTimeline(); renderChallenger(); renderProjects(); renderNews(); renderLive(); renderStatus(); renderRadar(); renderPress(); renderStars(); renderRaceBars(); renderLiveBoard(); renderTicker(); animate(); clock();
   $("#built").textContent = new Date(D.built_at).toUTCString();
 }
 setInterval(() => { if (D) $("#upd").textContent = `updated ${ago(D.built_at)}`; }, 1000);

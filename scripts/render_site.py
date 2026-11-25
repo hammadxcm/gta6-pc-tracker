@@ -183,6 +183,12 @@ def private_html(data):
                      f'<p class="pv-sum">{e(x.get("summary") or "")}</p></article>' for x in data["portwatch"].get("private", []))
 
 
+def unrated_html(data):
+    return "\n".join(f'<a class="un card" href="https://github.com/{e(x["repo"])}" target="_blank" rel="noopener"><b>{e(x["name"])}</b>'
+                      f'<span>{e(x["repo"])}</span><small>★ {x.get("stars") or 0:,}{" · " + e(x["language"]) if x.get("language") else ""}</small></a>'
+                      for x in data["portwatch"].get("unrated", []))
+
+
 def render(data):
     pw, L = data["portwatch"], data["portwatch"]["leader"]
     tpl = (SITE / "index.template.html").read_text()
@@ -211,6 +217,7 @@ def render(data):
         (pw.get("furthest"), "Furthest milestone"), (pw.get("top3"), "Top-3 average"),
         (pw.get("playable_count", "–"), "Teams at Playable"), (pw.get("watched"), "Efforts tracked"))))
     out = fill(out, "private", private_html(data))
+    out = fill(out, "unrated", unrated_html(data))
     for slot, value in {**intel_html(data), **live_html(data)}.items():
         if value:
             out = fill(out, slot, value)
