@@ -843,17 +843,36 @@ def _intel_radar(pw_ranked_repos: set, candidates: list) -> list:
 def _intel_takedowns(pw: dict) -> dict:
     events = [{"name": n["name"], "repo": n.get("repo"), "kind": "nuked", "text": f"{n['name']} was taken offline and is no longer ranked."}
               for n in (pw or {}).get("nuked", [])]
+    for n in (pw or {}).get("news", []):
+        if re.search(r"takedown|dmca|nuked", n.get("title", ""), re.I):
+            events.insert(0, {"name": "PortWatch", "repo": None, "kind": "takedown", "text": n["title"]})
     if any(n["name"] == "Leonida" for n in (pw or {}).get("nuked", [])):
         events.append({"name": "Leonida", "repo": None, "kind": "caution",
                        "text": "Several new GitHub repos claim to continue Leonida. None is verified: avoid downloads from them."})
-    try:
-        commits, _ = gh("/repos/github/dmca/commits?per_page=60")
-        for c in commits:
-            msg = c["commit"]["message"].splitlines()[0]
-            if re.search(r"take-?two|rockstar|gta|grand theft", msg, re.I) and c["sha"] not in INTEL_HIST["dmca_seen"]:
-                INTEL_HIST["dmca_seen"].append(c["sha"])
-                INTEL_HIST.setdefault("dmca", []).insert(0, {"at": c["commit"]["author"]["date"], "text": _wclean(msg, 160),
-                                                              "url": c["html_url"]})
+    try:   # notices are named <date>-<company>.md; commit messages are generic, so scan this + last month's folders
+        now = datetime.now(timezone.utc); first = now.replace(day=1); prev = first - timedelta(days=1)
+        found = []
+        try:
+            raw, _ = gh(PORTWATCH_URL)
+            pw_dmca = {x.get("path"): x for x in (raw.get("dmca") or [])}
+        except Exception:
+            pw_dmca = {}
+        for y, m in ((now.year, now.month), (prev.year, prev.month)):
+            try:
+                items, _ = gh(f"/repos/github/dmca/contents/{y}/{m:02d}")
+            except Exception:
+                continue
+            for it in items:
+                n = it.get("name", "")
+                if re.search(r"take-?two|rockstar", n, re.I):
+                    meta = pw_dmca.get(it.get("path"), {})
+                    if meta and not meta.get("gta6"):
+                        continue   # PortWatch read it: not about GTA VI ports (e.g. GTA V mobile ports)
+                    hit = ", ".join(meta.get("tracked") or [])
+                    found.append({"at": n[:10], "url": it.get("html_url"),
+                                  "text": "Take-Two DMCA notice" + (f" naming {hit}" if hit else "") + " (GTA VI ports)" if meta.get("gta6") else "Take-Two DMCA notice"})
+        found.sort(key=lambda x: x["at"], reverse=True)
+        INTEL_HIST["dmca"] = found[:8]
     except Exception as e:
         print("intel: dmca failed:", e, flush=True)
     del INTEL_HIST["dmca_seen"][:-500]
