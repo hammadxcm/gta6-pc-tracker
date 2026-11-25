@@ -560,3 +560,6 @@ img{display:block}
 .ld .tracks,.pv .tracks{grid-template-columns:1fr!important;gap:7px!important}
 .seg-bar.sb-sm{height:9px;margin:2px 0}
 .rb-n{min-width:0;white-space:nowrap;overflow:visible}
+.tracks{grid-template-columns:repeat(4,minmax(0,1fr))}.trk{min-width:0}
+.eff .body{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+@media (max-width:900px){.tracks{grid-template-columns:repeat(2,minmax(0,1fr))!important}.eff .body{grid-template-columns:minmax(0,1fr)!important}}
