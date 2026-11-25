@@ -181,6 +181,19 @@ function renderPrivate(){
     <p class="pv-v">Verification: ${esc(p.verification || "unknown")}${p.based_on?.length ? ` · built on ${esc(p.based_on.join(" + "))}` : ""}</p></article>`).join("");
 }
 
+function renderNuked(){
+  const nk = D.portwatch.nuked_detail || [];
+  $("#offline").hidden = !nk.length;
+  $("#nkgrid").innerHTML = nk.map(n => `<article class="nk card reveal">
+    <span class="nk-stamp">${n.dmca ? "DMCA" : "Offline"}</span>
+    <h3>${esc(n.name)}</h3><p class="nk-repo">${esc(n.repo || "")}</p>
+    <dl class="nk-dl"><div><dt>Gone since</dt><dd>${esc(n.at || "?")}</dd></div>${n.dmca_at ? `<div><dt>DMCA notice</dt><dd>${esc(n.dmca_at)}</dd></div>` : ""}
+      <div><dt>Stars</dt><dd>${nf(n.stars)}</dd></div><div><dt>Forks</dt><dd>${nf(n.forks)}</dd></div><div><dt>Got as far as</dt><dd>${esc(n.reached)}</dd></div></dl>
+    <p class="nk-note">${esc(n.note)}</p>
+    ${(n.last_result || []).length ? `<h4>Last results before it went offline</h4><ul>${n.last_result.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+  </article>`).join("");
+}
+
 function renderChallenger(){
   const pw = D.portwatch, ours = new Set(pw.ours || []);
   const c = pw.ranked.slice(0, 3).find(r => !ours.has(r.repo));
@@ -401,7 +414,7 @@ async function load(){
     const r = await fetch(`data/live.json?t=${Math.floor(Date.now() / 6e4)}`, {cache: "no-cache"});
     D = await r.json();
   } catch (e) { $("#upd").textContent = "data unavailable"; return; }
-  renderHero(); renderChips(); renderLeaders(); renderPrivate(); renderRace(); renderTrend(); renderTimeline(); renderChallenger(); renderProjects(); renderNews(); renderLive(); renderStatus(); renderRadar(); renderPress(); renderStars(); renderRaceBars(); renderLiveBoard(); renderTicker(); animate(); clock();
+  renderHero(); renderChips(); renderNuked(); renderLeaders(); renderPrivate(); renderRace(); renderTrend(); renderTimeline(); renderChallenger(); renderProjects(); renderNews(); renderLive(); renderStatus(); renderRadar(); renderPress(); renderStars(); renderRaceBars(); renderLiveBoard(); renderTicker(); animate(); clock();
   $("#built").textContent = new Date(D.built_at).toUTCString();
 }
 setInterval(() => { if (D) $("#upd").textContent = `updated ${ago(D.built_at)}`; }, 1000);

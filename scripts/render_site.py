@@ -201,6 +201,8 @@ def render(data):
     out = fill(out, "board", board_html(pw))
     out = fill(out, "faq", faq_html(q))
     out = fill(out, "leaders", leaders_html(data))
+    out = fill(out, "nuked", "\n".join(f'<article class="nk card"><span class="nk-stamp">{"DMCA" if n.get("dmca") else "Offline"}</span><h3>{e(n["name"])}</h3>'
+        f'<p class="nk-repo">{e(n.get("repo") or "")}</p><p class="nk-note">{e(n.get("note") or "")}</p></article>' for n in pw.get("nuked_detail", [])))
     out = fill(out, "chips", "".join(f'<div class="chip"><b>{e(v)}</b><span>{e(l)}</span></div>' for v, l in (
         (pw.get("furthest"), "Furthest milestone"), (pw.get("top3"), "Top-3 average"),
         (pw.get("playable_count", "–"), "Teams at Playable"), (pw.get("watched"), "Efforts tracked"))))
