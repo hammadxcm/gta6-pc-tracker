@@ -611,9 +611,20 @@ def poll_team_stats(slugs: list[str]) -> dict:
                     break
                 page += 1
             prs, h = gh(f"/repos/{slug}/pulls?state=open&per_page=1")
+            recent, _ = gh(f"/repos/{slug}/pulls?state=all&sort=updated&direction=desc&per_page=20")
+            events = []
+            for pr in recent:
+                base = {"n": pr["number"], "title": pr["title"][:140], "by": pr["user"]["login"],
+                        "avatar": pr["user"]["avatar_url"], "draft": pr.get("draft", False), "url": pr["html_url"]}
+                events.append({**base, "kind": "opened", "at": pr["created_at"]})
+                if pr.get("merged_at"):
+                    events.append({**base, "kind": "merged", "at": pr["merged_at"]})
+                elif pr.get("closed_at"):
+                    events.append({**base, "kind": "closed", "at": pr["closed_at"]})
+            events.sort(key=lambda e: e["at"], reverse=True)
             out[slug] = {"stars": r.get("stargazers_count"), "forks": r.get("forks_count"), "pushed_at": r.get("pushed_at"),
                          "created_at": r.get("created_at"), "commits_24h": n, "commits_capped": n >= 300,
-                         "open_prs": last_page_count(h, prs), "url": r.get("html_url"),
+                         "open_prs": last_page_count(h, prs), "url": r.get("html_url"), "events": events[:12],
                          "avatar": (r.get("owner") or {}).get("avatar_url")}
         except Exception as e:
             print("team stats failed:", slug, e, flush=True)
