@@ -645,7 +645,29 @@ def poll_team_stats(slugs: list[str]) -> dict:
                 elif pr.get("closed_at"):
                     events.append({**base, "kind": "closed", "at": pr["closed_at"]})
             events.sort(key=lambda e: e["at"], reverse=True)
+            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            def _cnt(state):
+                try:
+                    items, hh = gh(f"/repos/{slug}/pulls?state={state}&per_page=1")
+                    return last_page_count(hh, items)
+                except Exception:
+                    return None
+            merged_today = search_count(f"repo:{slug}+is:pr+is:merged+merged:>={today}")
+            if merged_today is None:
+                merged_today = sum(1 for ev in events if ev["kind"] == "merged" and ev["at"][:10] == today)
+            try:
+                rel, _ = gh(f"/repos/{slug}/releases/latest")
+                release = {"tag": rel.get("tag_name"), "name": rel.get("name"), "at": rel.get("published_at")}
+            except Exception:
+                release = None
+            try:
+                cc, ch = gh(f"/repos/{slug}/contributors?per_page=1&anon=1")
+                contributors = last_page_count(ch, cc)
+            except Exception:
+                contributors = None
             out[slug] = {"stars": r.get("stargazers_count"), "forks": r.get("forks_count"), "pushed_at": r.get("pushed_at"),
+                         "repo_name": r.get("full_name"), "total_prs": _cnt("all"), "merged_today": merged_today,
+                         "release": release, "contributors": contributors,
                          "created_at": r.get("created_at"), "commits_24h": n, "commits_capped": n >= 300,
                          "open_prs": last_page_count(h, prs), "url": r.get("html_url"), "events": events[:12],
                          "avatar": (r.get("owner") or {}).get("avatar_url")}

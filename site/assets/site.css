@@ -563,3 +563,6 @@ img{display:block}
 .tracks{grid-template-columns:repeat(4,minmax(0,1fr))}.trk{min-width:0}
 .eff .body{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
 @media (max-width:900px){.tracks{grid-template-columns:repeat(2,minmax(0,1fr))!important}.eff .body{grid-template-columns:minmax(0,1fr)!important}}
+
+.lb-slug{font-family:var(--body);font-size:13px;font-weight:700;color:var(--dim);margin-left:6px;overflow-wrap:anywhere}
+.lb-act em{font-style:normal;margin-right:6px}.lb-extra{font-size:13.5px;color:var(--soft);margin:2px 0}

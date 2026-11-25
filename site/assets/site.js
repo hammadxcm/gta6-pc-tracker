@@ -352,14 +352,25 @@ function velChart(v, accent){
   return `<div class="vc"><div class="vc-h"><span class="h4">PRs per hour · 12h</span><span class="vc-lg"><i style="background:${accent}"></i>opened<i style="background:#a78bfa"></i>merged<i class="na"></i>no data</span></div>
     <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Pull requests opened and merged per hour over the last 12 hours">${g}</svg><div class="hist-l"><span>12h ago</span><span>now</span></div></div>`;
 }
+/* every public repo in the race: our two projects + other public teams (stats from team_stats) */
+function boardRepos(){
+  const ts = D.team_stats || {}, mine = new Set(D.repos.map(r => r.slug)), cols = ["#ff8a5c", "#36e4e0", "#8d5cff", "#ffc38a", "#c4b5fd", "#5ef0ec"]; let k = 0;
+  const teams = (D.portwatch.ranked || []).filter(x => x.repo && ts[x.repo] && !mine.has(x.repo)).map(x => { const t = ts[x.repo];
+    return {slug: x.repo, label: x.name, accent: cols[k++ % cols.length], external: true, events: t.events || [], stars: t.stars, merged_today: t.merged_today,
+      commits_24h: t.commits_24h, capped: t.commits_capped, open_prs: t.open_prs, total_prs: t.total_prs, forks: t.forks, contributors: t.contributors,
+      release: t.release, pushed_at: t.pushed_at, score: x.score, stage: x.stage}; });
+  return [...D.repos, ...teams];
+}
 function renderLiveBoard(){
   const fresh = new Set(), first = SEEN === null; if (first) SEEN = new Set();
-  for (const r of D.repos) for (const e of r.events || []) { const k = evKey(r.slug, e); if (!SEEN.has(k)) { if (!first) { fresh.add(k); if (e.kind === "opened") NEWCOUNT++; } SEEN.add(k); } }
+  for (const r of boardRepos()) for (const e of r.events || []) { const k = evKey(r.slug, e); if (!SEEN.has(k)) { if (!first) { fresh.add(k); if (e.kind === "opened") NEWCOUNT++; } SEEN.add(k); } }
   const pill = $("#newpill");
   if (NEWCOUNT) { pill.hidden = false; pill.textContent = `${NEWCOUNT} new PR${NEWCOUNT === 1 ? "" : "s"} since you opened this page`; }
-  $("#lboard").innerHTML = D.repos.map(r => {
-    const tiles = [[r.stars, "Stars"], [r.merged_today, "Merged today"], [r.commits_today, "Commits today"], [r.prs_opened_1h, "PRs opened · 1h"], [r.open_prs, "Open PRs"]];
-    const evs = (r.events || []).slice(0, 8).map(e => {
+  $("#lboard").innerHTML = boardRepos().map(r => {
+    const tiles = r.external
+      ? [[r.stars, "Stars"], [r.merged_today, "Merged today"], [r.commits_24h, "Commits 24h"], [r.open_prs, "Open PRs"], [r.total_prs, "PRs so far"]]
+      : [[r.stars, "Stars"], [r.merged_today, "Merged today"], [r.commits_today, "Commits today"], [r.prs_opened_1h, "PRs opened · 1h"], [r.open_prs, "Open PRs"]];
+    const evs = (r.events || []).slice(0, r.external ? 5 : 8).map(e => {
       const age = (Date.now() - new Date(e.at)) / 6e4, k = evKey(r.slug, e);
       const kind = e.kind === "opened" ? (age < 15 ? "new" : e.draft ? "draft" : "opened") : e.kind;
       const lbl = {new: "NEW PR", opened: "OPENED", draft: "DRAFT", merged: "MERGED", closed: "CLOSED"}[kind] || kind.toUpperCase();
@@ -369,9 +380,9 @@ function renderLiveBoard(){
         <s>#${e.n} by ${esc(e.by)}${e.additions != null ? ` · <span class="add">+${nf(e.additions)}</span> <span class="del">−${nf(e.deletions)}</span>` : ""}</s></div><time datetime="${esc(e.at)}">${ago(e.at)}</time></li>`;
     }).join("");
     return `<article class="lb card" style="--acc:${esc(r.accent)}">
-      <header class="lb-top"><h3>${esc(r.label)}</h3><span class="lb-act">last activity <b>${ago(r.last_activity || r.pushed_at)}</b></span></header>
+      <header class="lb-top"><h3>${esc(r.label)} <a class="lb-slug" href="https://github.com/${esc(r.slug)}" target="_blank" rel="noopener">${esc(r.slug)}</a></h3><span class="lb-act">${r.external ? `<em class="t-pub">race team · ${r.score}</em> ` : '<em class="t-ours">on stream</em> '}last activity <b>${ago(r.last_activity || r.pushed_at)}</b></span></header>
       <div class="lb-tiles">${tiles.map(([v, l]) => `<div class="st"><b>${nf(v)}</b><span>${l}</span></div>`).join("")}</div>
-      ${velChart(r.pr_velocity, r.accent)}
+      ${r.external ? `<p class="lb-extra">${nf(r.forks)} forks · ${nf(r.contributors)} contributors · release: ${r.release ? esc(r.release.tag || r.release.name) : "none yet"}</p>` : velChart(r.pr_velocity, r.accent)}
       <ol class="lb-list" aria-label="Latest pull requests on ${esc(r.label)}">${evs}</ol></article>`;
   }).join("");
 }
